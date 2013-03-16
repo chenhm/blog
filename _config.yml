@@ -1,7 +1,6 @@
 markdown: rdiscount
 permalink: /:year/:month/:title/
-#url: http://chenhm.com
-url: 
+url: http://chenhm.com
 author: 陈宏明
 pygments: true
 
