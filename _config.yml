@@ -2,6 +2,6 @@ markdown: rdiscount
 permalink: /:year/:month/:title/
 url: 
 disqus: http://chenhm.com
-author: 陈宏明
+author: Chen Hongming
 pygments: true
 
