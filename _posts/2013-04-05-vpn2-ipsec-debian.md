@@ -13,14 +13,24 @@ tags: [debian, IPSec, vpn]
 ###使用apt-get安装racoon
 为了使用最新版的racoon，我们需要给debian加上testing源。testing版相对于稳定版测试没那么充分，但一般使用是没有问题的，软件往往新很多。  
 ####编辑源列表
+	
 	vi /etc/apt/sources.list
+	
 后面添加testing源
-		
-	deb http://ftp.debian.org/debian testing main non-free contrib	deb http://ftp.debian.org/debian testing-proposed-updates main non-free contrib	deb http://security.debian.org/ testing/updates main non-free contrib			deb-src http://ftp.debian.org/debian testing main non-free contrib	deb-src http://ftp.debian.org/debian testing-proposed-updates main non-free contrib	deb-src http://security.debian.org/ testing/updates main non-free contrib
+
+    deb http://ftp.debian.org/debian testing main non-free contrib
+    deb http://ftp.debian.org/debian testing-proposed-updates main non-free contrib
+    deb http://security.debian.org/ testing/updates main non-free contrib
+    
+    deb-src http://ftp.debian.org/debian testing main non-free contrib
+    deb-src http://ftp.debian.org/debian testing-proposed-updates main non-free contrib
+    deb-src http://security.debian.org/ testing/updates main non-free contrib
 ####更新源列表
-	apt-get update	apt-get upgrade
+
+	apt-get update
+	apt-get upgrade
 ####install racoon
-	apt-get install racoon
+    apt-get install racoon
 ###编译安装racoon
 去<http://ipsec-tools.sourceforge.net/>下载[最新版本的racoon源码](http://sourceforge.net/projects/ipsec-tools/files/latest/download?source=files)
 
