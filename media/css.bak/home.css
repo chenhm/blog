@@ -342,22 +342,6 @@ height:0;
 height:auto;
 }
 
-.nav {
-margin-left:0;
-margin-bottom:20px;
-list-style:none;
-}
-
-.nav>li>a {
-display:block;
-background-color:#eee;
-}
-
-.nav>li>a:hover {
-text-decoration:none;
-color:#fff;
-background-color:#b9221f;
-}
 
 .pills {
 zoom:1px;

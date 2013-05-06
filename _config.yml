@@ -4,4 +4,5 @@ url:
 disqus: http://chenhm.com
 author: Chen Hongming
 pygments: true
+paginate: 15
 

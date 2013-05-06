@@ -1,4 +1,8 @@
 ---
+title: On the Road
 layout: default
+comments: no
 ---
-<iframe src="http://photo.chenhm.com" style="width:817px;height:600px;margin:0px;padding:0px;" />
+
+<div id="foto"> </div>
+<script src="/media/js/foto.js"></script>

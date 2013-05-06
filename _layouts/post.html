@@ -5,6 +5,8 @@ layout: default
 <section class="post">
 {{ content }}
 </section>
+
+{% if page.comments != false %}
 <section class="meta">
 <span class="author">
   <a href="http://chenhm.com">{{ site.author }}</a>
@@ -34,6 +36,7 @@ layout: default
 </span>
 {% endif %}
 </section>
+
 {% include comments.md %}
 <script type="text/javascript">
 $(function(){
@@ -56,4 +59,4 @@ $(function(){
   });
 })
 </script>
-
+{% endif %}

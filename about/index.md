@@ -1,9 +1,23 @@
 ---
 title: About me
-layout: about
-comments: yes
+layout: default
+comments: no
 ---
 
-一个工作近十年的码农，喜欢摄影，喜欢电影，喜欢阅读，喜欢极致简单的美。时间长了总会有些东西想纪录，于是用过各种博客，遇到各种不便。去年发现了[LOFTER](http://coldlight.lofter.com)，分享照片很赞，但非常不适合分享代码。碰巧看到[Jekyll](https://github.com/mojombo/jekyll)，正好弥补了*LOFTER*不足，希望以后两个结合，不用再找新地方了。
+##Chen Hongming <iframe style="margin-left: 10px;vertical-align: middle;" src="http://widget.weibo.com/relationship/followbutton.php?btn=red&amp;style=1&amp;uid=2119602721&amp;width=67&amp;height=24&amp;language=zh_cn" width="67" height="24" frameborder="0" scrolling="no" marginheight="0"></iframe> ##
 
-其他地方的文章正在陆续搬迁中。
+<br />
+A Programmer
+<br />
+GitHub:  
+> <https://github.com/chenhm>
+
+500px:
+> <http://500px.com/chenhm>
+
+Lofter:
+> [http://coldlight.lofter.com](http://coldlight.lofter.com/?mydomainr=true)
+
+<br />
+<br />
+
