@@ -7,7 +7,7 @@ tags: [pages template]
 ---
 Go对交叉编译有较完善的支持，我们以Linux环境编译windows目标文件为例，介绍如何从零搭建一个Go语言交叉编译环境。
 
-首先从[Go project's downloads page](http://code.google.com/p/go/downloads)下载源码包解压，设置环境变量并make。
+首先从[Go project's downloads page](http://golang.org/dl/)下载源码包解压，设置环境变量并make。
 
 	export GOROOT=~/go     #go源码解压的路径，这里假设为用户的根目录
 	export PATH=$GOROOT/bin:$PATH
