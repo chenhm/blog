@@ -995,7 +995,7 @@ pre {
   font-size: 13px;
   line-height: 20px;
   word-break: break-all;
-  word-wrap: break-word;
+  /* word-wrap: break-word; */
   white-space: pre;
   white-space: pre-wrap;
   background-color: #f5f5f5;
@@ -1004,6 +1004,7 @@ pre {
   -webkit-border-radius: 4px;
      -moz-border-radius: 4px;
           border-radius: 4px;
+  overflow-x: auto;
 }
 
 pre.prettyprint {
@@ -1014,7 +1015,6 @@ pre code {
   padding: 0;
   color: inherit;
   white-space: pre;
-  white-space: pre-wrap;
   background-color: transparent;
   border: 0;
 }
