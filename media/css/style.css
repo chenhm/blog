@@ -2756,7 +2756,6 @@ a.buy:hover {
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
 	
 	body {
-		background: url(../img/bg.jpg) repeat;
 		background-size: 320px 160px;	
 	}
 	
