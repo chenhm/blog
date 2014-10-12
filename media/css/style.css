@@ -154,7 +154,7 @@ img.right {
 	ol ol, ol ul {}
 	ul ul li, ul ol li,
 	ol ol li, ol ul li {}
-
+	.post ul{list-style: disc inside;}
 
 /* Header
 =================================================================== */
