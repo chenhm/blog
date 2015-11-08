@@ -11,8 +11,8 @@ tags: [pages template]
 
 但还有个更简单的方法就是利用Chrome和Firefox的`SSLKEYLOGFILE`环境变量和Wireshark的(Pre)-Master-Secret功能:
 
-1. 设定环境变量
-`export SSLKEYLOGFILE=/home/user/premaster.txt`
+1. 设定环境变量  
+`export SSLKEYLOGFILE=/home/user/premaster.txt`  
 Windows在系统属性->高级->环境变量中设置。
 
 2. 设置Wireshark
@@ -22,10 +22,11 @@ Windows在系统属性->高级->环境变量中设置。
 3. 正常打开Chrome或Firefox，访问HTTPS网站，你会看到premaster.txt里面记录了浏览器使用的临时密码，有了这个Wireshark自然可以解密SSL流量了。
 
 
-参考:
-https://wiki.wireshark.org/SSL
-http://security.stackexchange.com/questions/35639/decrypting-tls-in-wireshark-when-using-dhe-rsa-ciphersuites/42350#42350
-https://jimshaver.net/2015/02/11/decrypting-tls-browser-traffic-with-wireshark-the-easy-way/
-https://www.imperialviolet.org/2011/11/22/forwardsecret.html
-https://www.imperialviolet.org/2012/06/25/wireshark.html
+参考:  
+<https://wiki.wireshark.org/SSL>  
+<http://security.stackexchange.com/questions/35639/decrypting-tls-in-wireshark-when-using-dhe-rsa-ciphersuites/42350#42350>  
+<https://jimshaver.net/2015/02/11/decrypting-tls-browser-traffic-with-wireshark-the-easy-way/>  
+<https://www.imperialviolet.org/2011/11/22/forwardsecret.html>  
+<https://www.imperialviolet.org/2012/06/25/wireshark.html>  
+
 
