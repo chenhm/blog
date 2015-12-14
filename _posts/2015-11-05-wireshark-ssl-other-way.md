@@ -15,7 +15,7 @@ tags: [pages template]
 `export SSLKEYLOGFILE=/home/user/premaster.txt`  
 Windows在系统属性->高级->环境变量中设置。
 
-2. 设置Wireshark
+2. 设置Wireshark  
 在Edit->Preferences->Protocols->SSL->(Pre)-Master-Secret log filename中指定刚才的premaster.txt文件。
 ![(Pre)-Master-Secret](/images/premaster.png)
 
