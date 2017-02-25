@@ -1,8 +1,8 @@
-markdown: rdiscount
+markdown: kramdown
 permalink: /:year/:month/:title/
 url: 
 disqus: http://chenhm.com
 author: Chen Hongming
-pygments: true
+highlighter: rouge
 paginate: 15
 
