@@ -22,6 +22,7 @@ line-height: 0.8em;
 iframe { margin: 0; padding: 0; border: 0; }
 .remark-slide-content {
 padding: 0em 2em 1em 2em !important;
+background-size: cover;
 }
 pre {
 /* border-left: 0.4em solid #d7d7d7; */
