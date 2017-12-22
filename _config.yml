@@ -1,8 +1,0 @@
-markdown: kramdown
-permalink: /:year/:month/:title/
-url: 
-disqus: http://chenhm.com
-author: Chen Hongming
-highlighter: rouge
-paginate: 15
-
