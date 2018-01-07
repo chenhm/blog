@@ -10,7 +10,7 @@ Spring cloud 是目前最热门的 Microservice 框架，其基础是Netfilex OS
 这里简单整理了Spring cloud涉及的常见概念，作为入门参考。这篇文章中的一些例子可以在 https://github.com/chenhm/spring-cloud-demo 找到，小图都可以通过右键新开窗口查看大图。
 
 .Spring cloud technology stack
-image::images/spring-cloud.svg[]
+image::https://www.planttext.com/plantuml/img/ZLZhJzj84Fzy_YjMz7JSIJYl0gKHYWe9wUD4oq5QdSgXQcrFx2ssrxUx9eIg__lDFXpMIKhF7u8zyvk7P-TbNab5XQgBF92thAoee0N9Q9ai15CAIg943HxhMq3msYruoUDCy08im10JcDCwLpEuLoSvIyi2IaLY_05X05lvESoLuKOqlaq5hyjap7CkoBEfliu2mvGPJVY2bIcPqrnQUrG8ld3O_SCN-o-d5di9iQ9bciCf5ma8XnYRQmsmOV9WEfZsh9enBofUeeijDSvG6x2kvkpWRDoe-IWXfX9-fAHXFwLYp4ibUDvIqUiTzSU7BVQwYeE3oMHyObNCyUpWHmegbAJfLhRXdwIRKJWwsd_XCTTjJwRJtkGe2Bu7mQvYAWToLGbzVEESrmcPGPoLY4oNv4gXR118P2iWl-fi9DVzm_l-ONV_1jEjPw_1mDreGhy_EFtovNGmw5j2iVpYhcLX4Rrp-tpUYFIAudMlzxeeLWJ_qdx6DenavrYo1nZsZqQ-opk4IY8DmJm7WMYoYEoy1pNFsRt1bFR-4bstMQhZiuA4CHVWuyZrzSrD2_bcAPL0nd6iGpcCyXf6rgN1O7JycwBfw9_I-TWVZPc8QwP8983UWZ2gCwV1gDwYUK9b5d4g4X-z8cw8dTK2Rgbdymh47Ok194p6_0x4qkW10zkGdW9MkYSyWJZ7JgBO7P0tiza5YNE6GADYhh6e8LEgaiDkDsKggwDEp8lkXmfAewfhG6qRbooAk6_ayc9C5YXCSauJx2mvBMCRTc6WsssuC-fQJDl4h1OHAy6FWiAG5yXF1QHKSHjxPN6UWG8ILXV6W3lpK67wHvZzNHVxC6c27phvK1hjuQFsyB3tykY03k2WdypRlbrLEXKHu-S5ptEawlmj06t4qcMmWpuTWHMioSqcMyDmr2HCcovOcYbasYpOa367ja6rWTuWhwpRrcMIejDf6twaEYM6scI-XrxbzP3Wq6AeLST4CbEv6PTgGz0TmP30dGwlFGc3QWxtPzhZl9Pww9csOXgU2woTdWbLDCAcJtPEL4wbTsflox20WeibrXPEHybuINFY0HIIYGJ1GAxKc8EbMjFJXseWtGMxPMlfW-NCFHjdznL7vrpQ4AoMT-T_s-pHo9zaZeQqzNzY3p48cdicPeBEvomcdvYiQSuUi1tmqfYuS-3_MK0DFEJO7qB9Qn53IEEu5pyVzFlFvz1svNDT-swS9IaE9jlDFFBlECbqvUnvPxhdyGL8ffjMlDp3aCGrJgxb7yRx1zJ_T7mqektJYOWpochPAjvopj9QcB2GWfO8BPecIHq--6LL_gmiTVDlQy0tg7ajoGHojchIii5wNYuMYywAtc6ys_XdKafNH1DbGpRl65vdB4cWlC5oVNJ8veVFM-d5KdZiFLgdqRv6C_9DoUnCc2wng5QGu999Opo5dM-joE7YakafWanR1Pd6WO_HSsDcXSd9nTjcgWf8_A6Q0Ux08wD29vAp5gnLwvXAYPkne0Q8QvjS0vpXAoci6T0XiKFHKjguywNyDxVA7vS8-sQUvnyZFALt558trR-QstNKRA7NT44-imftT9k4vjO0lrihtZkPE7kgrbcUi4KPgdxN8NP2N5xMMUuDVQxLiLNGOpqjQ6BKyF0rtEjYNijM2M_VHM83ixj8KoKvr2hp5v4jwMLAn019IzWMv7RXBbhLZHgInZH2MzAdhUAk1AyeZdJiuqh_Ol6KAVW86WikiT2REMBqHhLiAJtM3jp2Q6mnnrttR9smn7O0NAVo37qumJSTx96hgm-klrj8Isw2QKkcELyOY4xYEJwqLPiHwIa-1woK5C94OEknMMd7Q4lia_uQzALqezE9YAuAK7PZkTCWrwsmMPdUqB6BkEvLzYuqvD1WTVjoBUHvLVaDupLJtjEVTEuM5VjyIQE8gVE_TBO5BWaw-kjKJtlJLuQuGfjUuwfDVqY2xgqxA_nZ1GNUnm89wmgReStAxGpCcIsC9jfRM6ujQJ6GR4BGfZQhcHkUspp3vDhGr2mnw_GcIGATaIlbpft0fN-dhZ0KEk3kt2t1nhn5MeMzPKV7NMirOKMFcyJK3kW1P0pf4Z_kN3_35HcdJQTPFeVOLQjSpm7y-ConKPM9_I_3xaRpnu-yflbZ0I45_nZCY0p9nUGZmS7q_kejgVM-k9BtFicC0lr9jYa-nb71y00XsBKUQ4VGfLVufoxo_m00[]
 
 上图是我列出的一些基础组件依赖关系，已显得眼花缭乱，但如果我们思考 Microservice 所面临的问题，服务框架应该如何解决这些问题，那么 Spring cloud 的组件关系将会变得清晰自然。
 
@@ -75,12 +75,12 @@ public class ClientApplication {
 }
 ```
 +
-image::http://callistaenterprise.se/assets/blogg/goblog/part7-clientsidelb.png[,70%]
+image::http://callistaenterprise.se/assets/blogg/goblog/part7-clientsidelb.png[]
 
 * Server-side load balance: 服务端 LB 需要新增一个反向代理模块，实现相对复杂，现在多体现为 http://microservices.io/patterns/apigateway[API Gateway] 模式，后面我们会单独介绍。
 +
 [with=50%]
-image::http://callistaenterprise.se/assets/blogg/goblog/part7-serversidelb.png[,70%]
+image::http://callistaenterprise.se/assets/blogg/goblog/part7-serversidelb.png[]
 
 ### 声明式REST客户端 Declarative REST Client
 
@@ -138,7 +138,7 @@ public interface NamesFeignClient {
 #### Hystrix Dashboard
 一旦达到熔断条件，service 会直接调用 fallback 上的 mock 方法，不经过 SD、LB 等模块，所以 API 调用统计只能在断路器这个层面上实现。Hystrix 提供了子项目 https://github.com/Netflix/Hystrix/wiki/Dashboard[Hystrix Dashboard] 用于呈现 API 调用监控。
 
-image::https://raw.githubusercontent.com/wiki/Netflix/Hystrix/images/dashboard-example-1280.png[hystrix-dashboard-netflix-api-example,70%]
+image::https://raw.githubusercontent.com/wiki/Netflix/Hystrix/images/dashboard-example-1280.png[hystrix-dashboard-netflix-api-example]
 
 启用 Hystrix Dashboard 也再次体现了 Spring cloud 基于注解的极简接口。
 
@@ -246,7 +246,7 @@ Service Mesh是什么呢？我们回顾上面的内容，可以看到微服务�
 
 https://buoyant.io[Buoyant] 发布的 https://linkerd.io/[Linkerd] 是Service Mesh第一个商业实现，而Google、IBM 和 Lyft 发布的 https://istio.io/[Istio] 引入了控制平面的概念，将服务管理从数据平面抽象出来，有点像 SDN 的架构。这样明显领先的设计让 Linkerd 面临巨大压力，于是 Buoyant 在2017年底发布了 https://buoyant.io/2017/12/05/introducing-conduit/[Conduit] 以便和 Istio 竞争。
 
-image::https://istio.io/docs/concepts/what-is-istio/img/overview/arch.svg[,70%]
+image::https://istio.io/docs/concepts/what-is-istio/img/overview/arch.svg[]
 
 ### Dubbo vs Spring Cloud
 
