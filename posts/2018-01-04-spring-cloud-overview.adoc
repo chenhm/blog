@@ -12,14 +12,14 @@ Spring cloud 是目前最热门的 Microservice 框架，其基础是Netfilex OS
 .Spring cloud technology stack
 image::https://www.planttext.com/plantuml/img/ZLZhJzj84Fzy_YjMz7JSIJYl0gKHYWe9wUD4oq5QdSgXQcrFx2ssrxUx9eIg__lDFXpMIKhF7u8zyvk7P-TbNab5XQgBF92thAoee0N9Q9ai15CAIg943HxhMq3msYruoUDCy08im10JcDCwLpEuLoSvIyi2IaLY_05X05lvESoLuKOqlaq5hyjap7CkoBEfliu2mvGPJVY2bIcPqrnQUrG8ld3O_SCN-o-d5di9iQ9bciCf5ma8XnYRQmsmOV9WEfZsh9enBofUeeijDSvG6x2kvkpWRDoe-IWXfX9-fAHXFwLYp4ibUDvIqUiTzSU7BVQwYeE3oMHyObNCyUpWHmegbAJfLhRXdwIRKJWwsd_XCTTjJwRJtkGe2Bu7mQvYAWToLGbzVEESrmcPGPoLY4oNv4gXR118P2iWl-fi9DVzm_l-ONV_1jEjPw_1mDreGhy_EFtovNGmw5j2iVpYhcLX4Rrp-tpUYFIAudMlzxeeLWJ_qdx6DenavrYo1nZsZqQ-opk4IY8DmJm7WMYoYEoy1pNFsRt1bFR-4bstMQhZiuA4CHVWuyZrzSrD2_bcAPL0nd6iGpcCyXf6rgN1O7JycwBfw9_I-TWVZPc8QwP8983UWZ2gCwV1gDwYUK9b5d4g4X-z8cw8dTK2Rgbdymh47Ok194p6_0x4qkW10zkGdW9MkYSyWJZ7JgBO7P0tiza5YNE6GADYhh6e8LEgaiDkDsKggwDEp8lkXmfAewfhG6qRbooAk6_ayc9C5YXCSauJx2mvBMCRTc6WsssuC-fQJDl4h1OHAy6FWiAG5yXF1QHKSHjxPN6UWG8ILXV6W3lpK67wHvZzNHVxC6c27phvK1hjuQFsyB3tykY03k2WdypRlbrLEXKHu-S5ptEawlmj06t4qcMmWpuTWHMioSqcMyDmr2HCcovOcYbasYpOa367ja6rWTuWhwpRrcMIejDf6twaEYM6scI-XrxbzP3Wq6AeLST4CbEv6PTgGz0TmP30dGwlFGc3QWxtPzhZl9Pww9csOXgU2woTdWbLDCAcJtPEL4wbTsflox20WeibrXPEHybuINFY0HIIYGJ1GAxKc8EbMjFJXseWtGMxPMlfW-NCFHjdznL7vrpQ4AoMT-T_s-pHo9zaZeQqzNzY3p48cdicPeBEvomcdvYiQSuUi1tmqfYuS-3_MK0DFEJO7qB9Qn53IEEu5pyVzFlFvz1svNDT-swS9IaE9jlDFFBlECbqvUnvPxhdyGL8ffjMlDp3aCGrJgxb7yRx1zJ_T7mqektJYOWpochPAjvopj9QcB2GWfO8BPecIHq--6LL_gmiTVDlQy0tg7ajoGHojchIii5wNYuMYywAtc6ys_XdKafNH1DbGpRl65vdB4cWlC5oVNJ8veVFM-d5KdZiFLgdqRv6C_9DoUnCc2wng5QGu999Opo5dM-joE7YakafWanR1Pd6WO_HSsDcXSd9nTjcgWf8_A6Q0Ux08wD29vAp5gnLwvXAYPkne0Q8QvjS0vpXAoci6T0XiKFHKjguywNyDxVA7vS8-sQUvnyZFALt558trR-QstNKRA7NT44-imftT9k4vjO0lrihtZkPE7kgrbcUi4KPgdxN8NP2N5xMMUuDVQxLiLNGOpqjQ6BKyF0rtEjYNijM2M_VHM83ixj8KoKvr2hp5v4jwMLAn019IzWMv7RXBbhLZHgInZH2MzAdhUAk1AyeZdJiuqh_Ol6KAVW86WikiT2REMBqHhLiAJtM3jp2Q6mnnrttR9smn7O0NAVo37qumJSTx96hgm-klrj8Isw2QKkcELyOY4xYEJwqLPiHwIa-1woK5C94OEknMMd7Q4lia_uQzALqezE9YAuAK7PZkTCWrwsmMPdUqB6BkEvLzYuqvD1WTVjoBUHvLVaDupLJtjEVTEuM5VjyIQE8gVE_TBO5BWaw-kjKJtlJLuQuGfjUuwfDVqY2xgqxA_nZ1GNUnm89wmgReStAxGpCcIsC9jfRM6ujQJ6GR4BGfZQhcHkUspp3vDhGr2mnw_GcIGATaIlbpft0fN-dhZ0KEk3kt2t1nhn5MeMzPKV7NMirOKMFcyJK3kW1P0pf4Z_kN3_35HcdJQTPFeVOLQjSpm7y-ConKPM9_I_3xaRpnu-yflbZ0I45_nZCY0p9nUGZmS7q_kejgVM-k9BtFicC0lr9jYa-nb71y00XsBKUQ4VGfLVufoxo_m00[]
 
-上图是我列出的一些基础组件依赖关系，已显得眼花缭乱，但如果我们思考 Microservice 所面临的问题，服务框架应该如何解决这些问题，那么 Spring cloud 的组件关系将会变得清晰自然。
+上图是我列出的仅仅一些基础组件依赖关系，是不是显得有点眼花缭乱，但如果我们思考 Microservice 所面临的问题，服务框架应该如何解决这些问题，那么 Spring cloud 的组件关系将会变得清晰自然。
 
 在 https://martinfowler.com/articles/microservices.html[Martin Fowler] 的网站我们可以看到其对 Microservice 有这样一段描述：
 
 > a single application as a suite of small services, each running in its own process and *communicating with* lightweight mechanisms, often an *HTTP resource API*
 > -- James Lewis and Martin Fowler, ThoughtWorks
 
-当服务粒度变细之后，必然存在大量的服务间通信，服务A如何知道服务B的endpoint呢？于是我们引入服务发现机制。
+当服务粒度变细之后，必然存在大量的服务间通信，但服务A如何知道服务B的endpoint呢？这时我们需要引入服务发现机制。
 
 ### 服务发现 Service Discovry
 
@@ -42,13 +42,13 @@ Self check	metrics	metrics	-	metrics
 Multi-data center	Gossip	-	-	-
 |===
 
-Consul 在这里较为特别，Consul server 通过 http://thesecretlivesofdata.com/raft[Raft] 协议组成一个CP集群，数据写操作都由 leader 处理，保证强一致性。而由Consul agent 和 server 组成的完整集群则是一个 AP 系统，通过 Gossip 协议向 agent 广播 leader 状态，agent 进行查询操作的时候甚至可以使用 stale mode 完全不考虑一致性。
+Consul 因为有两级结构，CAP模式较为特别，Consul server 通过 http://thesecretlivesofdata.com/raft[Raft] 协议组成一个CP集群，数据写操作都由 leader 处理，保证强一致性。而由Consul agent 和 server 组成的完整集群则是一个 AP 系统，通过 Gossip 协议向 agent 广播 leader 状态，agent 进行查询操作的时候甚至可以使用 stale mode 完全不考虑一致性。
 
 image::images/consul.png[]
 
 ### 负载均衡 Load Balancer & Failover
 
-不管是因为 SD 为可用性牺牲了一致性，还是因为 health check 不够及时，我们从 SD 拿到的 service 列表总有一些是过期的，对应的需要有 Failover 机制在一个服务实例失效的时候连接其他实例。这时有两个选择：
+不管是 SD 为了提高可用性牺牲了一致性，还是因为 health check 不够及时，我们从 SD 拿到的 service 列表总有一些是过期的，对应的需要有 Failover 机制在一个服务实例失效的时候连接其他实例。这时有两个选择：
 
 * Client-side load balance: 客户端 LB 实现较为简单，直接在客户端完成服务查找和调用，Spring cloud 的实现是基于 https://github.com/Netflix/ribbon[Netflix/ribbon] 的，体现在代码上就是 `@LoadBalanced` 注解。
 +
@@ -79,7 +79,6 @@ image::http://callistaenterprise.se/assets/blogg/goblog/part7-clientsidelb.png[]
 
 * Server-side load balance: 服务端 LB 需要新增一个反向代理模块，实现相对复杂，现在多体现为 http://microservices.io/patterns/apigateway[API Gateway] 模式，后面我们会单独介绍。
 +
-[with=50%]
 image::http://callistaenterprise.se/assets/blogg/goblog/part7-serversidelb.png[]
 
 ### 声明式REST客户端 Declarative REST Client
@@ -110,7 +109,7 @@ public Resources<Reservation> getReservations(){
 即使有 LB，仍然可能会因为负载过高、网络抖动等原因无法正常调用，我们可以利用断路器进行服务降级，提升用户体验。
 
 #### Hystrix
-Spring cloud 使用的 https://github.com/Netflix/Hystrix[Hystrix] 可以和 Feign 结合在一起简化编程。
+Spring cloud 使用的 https://github.com/Netflix/Hystrix[Hystrix] 可以和 Feign 结合在一起简化编程：
 
 ```java
 @FeignClient(
@@ -193,7 +192,7 @@ OpenTracing 核心只有两个概念
          [Span E·······]        [Span F··] [Span G··] [Span H··]
 ----
 
-有规范就有实现，如今最流行的实现是 twitter 开源的 https://zipkin.io/[Zipkin]，但 Uber 开源的 https://github.com/jaegertracing/jaeger[Jaeger] 功能更强，并兼容 zipkin 协议，已成为 https://www.cncf.io/projects/[CNCF] 项目，有后来居上的趋势。另外国人开发的 http://skywalking.io/[SkyWalking APM] 目前已是 Apache 孵化项目，weibo在使用，也值得关注。
+有规范就有实现，如今最流行的实现是 twitter 开源的 https://zipkin.io/[Zipkin]，但 Uber 开源的 https://github.com/jaegertracing/jaeger[Jaeger] 功能更强，并兼容 zipkin 协议，已成为 https://www.cncf.io/projects/[CNCF] 项目，有后来居上的趋势。另外国人开发的 http://skywalking.io/[SkyWalking APM] 目前是 Apache 孵化项目，weibo已在使用，值得关注。
 
 https://cloud.spring.io/spring-cloud-sleuth/[Spring Cloud Sleuth] 是一套类似 OpenTracing 的API，并且会对 Spring 各个组件做 instrument（详细请参考`spring-cloud-sleuth-core`包里的`org.springframework.cloud.sleuth.instrument`相关类），这样Spring cloud的项目只需要引入 Sleuth 库，不需要改任何代码，即可输出 tracing 信息到 Zipkin。
 
