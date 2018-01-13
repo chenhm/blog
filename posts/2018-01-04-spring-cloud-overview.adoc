@@ -75,11 +75,11 @@ public class ClientApplication {
 }
 ```
 +
-image::http://callistaenterprise.se/assets/blogg/goblog/part7-clientsidelb.png[]
+image::images/part7-clientsidelb.png[]
 
 * Server-side load balance: 服务端 LB 需要新增一个反向代理模块，实现相对复杂，现在多体现为 http://microservices.io/patterns/apigateway[API Gateway] 模式，后面我们会单独介绍。
 +
-image::http://callistaenterprise.se/assets/blogg/goblog/part7-serversidelb.png[]
+image::images/part7-serversidelb.png[]
 
 ### 声明式REST客户端 Declarative REST Client
 
@@ -247,6 +247,22 @@ https://buoyant.io[Buoyant] 发布的 https://linkerd.io/[Linkerd] 是Service Me
 
 image::https://istio.io/docs/concepts/what-is-istio/img/overview/arch.svg[]
 
+### Cloud Native
+
+2013年，Spring 的 Matt Stine 提出了云原生(Cloud Native)的概念，描绘了面向云的架构需要关注的方向和需要达成的目标。今天我们可以看到，相对传统应用，云原生在架构的各个层面都发生了变革。而且互相依赖，自成一体，例如Service Mesh会重度依赖服务编排。在架构设计上，我们的关注点更多，但解决方案也越发的趋同。
+
+.cloud native abstractions
+
+	       Virtual machines -> Containers
+	           Data centers -> Orchestrated envs
+	    Hardware redundancy -> Design for failure
+	                Servers -> Services
+	      IP addresses, DNS -> Services discovery
+	      Server monitoring -> Services monitoring
+	Monolithic applications -> Microservices
+	                 TCP/IP -> gRPC, REST
+
+	
 ### Dubbo vs Spring Cloud
 
 在 Spring cloud 出现之前，Dubbo 是国内互联网界非常流行的 RPC 框架。虽然被ali荒废了几年，但其基本功能并没有落后太多，现在被ali重新启动，并作为aliyun的微服务解决框架使用，还是可以保持下关注。
@@ -272,3 +288,5 @@ Distributed message	No	Bus
 - https://mp.weixin.qq.com/s/hHzDa1T_UKPB97ttFRaDCQ[Service Mesh 时代的选边与站队]
 - https://www.kubernetes.org.cn/2737.html[Kubernetes，微服务以及 Service Mesh]
 - http://bit.ly/8stepsawesome[8 Steps to Becoming Awesome with Kubernetes]
+- https://medium.com/@DockerTurtle/service-mesh-the-nervous-system-of-microservices-9393ed1ffa5c["Service mesh" -- the Nervous system of Microservices]
+- https://content.pivotal.io/ebooks/migrating-to-cloud-native-application-architectures[Migrating to Cloud Native Application Architectures] by Matt Stine (https://github.com/rootsongjc/migrating-to-cloud-native-application-architectures[中文版])
