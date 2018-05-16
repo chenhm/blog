@@ -69,16 +69,16 @@ image::images/spring-r-systemload.png[]
 
 ```R
 library(ggplot2)
-data <<- numeric(100)
+data <<- numeric(100)  # 创建长度100的double型vector
 function(v) {
-  svg()
-  data <<- c(data[2:100], v)
+  svg()                # 打开svg设备
+  data <<- c(data[2:100], v)  # 用后99个数和新值创建新数据集合
   plot <- ggplot(data = data.frame(systemLoad = data, time = -99:0),
-  aes(x=time, y=systemLoad, group=1)) +
-  geom_line(color="orange") +
-  expand_limits(x=0, y=0)
-  print(plot)
-  svg.off()
+  aes(x=time, y=systemLoad, group=1)) +  # time为横坐标，systemLoad为纵坐标
+  geom_line(color="orange") +    # 绘制线图
+  expand_limits(x=0, y=0)        # 固定坐标原点，避免坐标轴的自动截取
+  print(plot)          # 输出到svg设备
+  svg.off()            # 关闭svg设备并返回  
 }
 ```
 
