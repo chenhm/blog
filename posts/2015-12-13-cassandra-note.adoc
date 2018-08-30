@@ -101,7 +101,7 @@ RowKey: 1
 => (name=user2:, value=, timestamp=1449473822481729)
 => (name=user2:name, value=6e616d6532, timestamp=1449473822481729)
 ----
-image::https://www.planttext.com/plantuml/svg/JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a_NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo-s9vxUhAF3QycYok8K-ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa-sVRDTSrpLyMPNXrNJigVpw0000[]
+image::https://www.plantuml.com/plantuml/svg/JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a_NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo-s9vxUhAF3QycYok8K-ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa-sVRDTSrpLyMPNXrNJigVpw0000[]
 
 ////
 [uml,file="composite-table.png"]
