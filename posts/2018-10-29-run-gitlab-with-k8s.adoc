@@ -10,7 +10,7 @@ http://chenhm.com[Chen Hongming]
 
 ### 升级系统内核
 
-虽然Docker官方要求Linux内核版本不低于3.10，但overlay2文件系统需要4.0以上的内核版本。RHEL在3.10.0-514以上通过安装时设置`overlay2.override_kernel_check=true`参数也可以强制使用overlay2，但简单起见，我们直接升级内核到最新的稳定版。不升级内核使用overlay2参考 https://docs.docker.com/storage/storagedriver/overlayfs-driver/#configure-docker-with-the-overlay-or-overlay2-storage-driver[这里]。
+虽然Docker官方要求Linux内核版本不低于3.10，但overlay2文件系统需要4.0以上的内核版本。RHEL在3.10.0-514以上通过安装时设置 `overlay2.override_kernel_check=true` 参数也可以强制使用overlay2，但简单起见，我们直接升级内核到最新的稳定版。不升级内核使用overlay2参考 https://docs.docker.com/storage/storagedriver/overlayfs-driver/#configure-docker-with-the-overlay-or-overlay2-storage-driver[这里]。
 
 1. 导入key
     
@@ -80,7 +80,7 @@ systemctl start docker
 
 ### 安装 kubeadm
 
-kubeadm是最主要的Kubernetes部署工具之一，它可以帮助完成k8s集群的初始化。`kubeadm`依赖`kubelet`来启动Master组件，`kubelet`运行在集群的每个节点上用于启动Pod，同时我们还需要`kubectl`来管理集群。详细安装步骤参考 https://kubernetes.io/docs/setup/independent/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
+kubeadm是最主要的Kubernetes部署工具之一，它可以帮助完成k8s集群的初始化。 `kubeadm` 依赖 `kubelet` 来启动Master组件， `kubelet` 运行在集群的每个节点上用于启动Pod，同时我们还需要 `kubectl` 来管理集群。详细安装步骤参考 https://kubernetes.io/docs/setup/independent/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
 
 .install-kubeadm.sh
 ```bash
@@ -108,7 +108,7 @@ systemctl enable kubelet && systemctl start kubelet
 
 ### 初始化 kubernetes
 
-初始化k8s master节点最简单的方法就是直接执行`kubeadm init`，这个命令会执行一系列的步骤：
+初始化k8s master节点最简单的方法就是直接执行 `kubeadm init`  ，这个命令会执行一系列的步骤：
 
 - 系统状态预检查
 - 生成自签名CA并签名每个组件
@@ -118,7 +118,7 @@ systemctl enable kubelet && systemctl start kubelet
 - 配置RBAC并设置Master node只运行控制平面组件
 - 创建附加服务，比如kube-proxy和kube-dns
 
-下面的脚本我们在`init`的时候启用了一些扩展API供后面使用。`init`后的集群还需要安装网络插件CNI用于集群网络管理，这里我们使用WeaveNet的CNI实现。最后为了便于查看集群状态，我们还安装了Kubernetes Dashboard，并用NodePort的形式将它暴露到本地的30443端口。
+下面的脚本我们在 `init` 的时候启用了一些扩展API供后面使用。 `init` 后的集群还需要安装网络插件CNI用于集群网络管理，这里我们使用WeaveNet的CNI实现。最后为了便于查看集群状态，我们还安装了Kubernetes Dashboard，并用NodePort的形式将它暴露到本地的30443端口。
 
 .startup-kube.sh
 ```bash
@@ -246,7 +246,7 @@ kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | gre
 
 ### 安装 gitlab
 
-由于gitlab组件众多，最简单的方式就是使用官方docker image运行。为了将docker内部的gitlab暴露出来，需要添加`external_url`参数，详细配置参考 https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/doc/settings/configuration.md#configuration-options[configuration-options]，可以根据自己情况修改下面的启动脚本。
+由于gitlab组件众多，最简单的方式就是使用官方docker image运行。为了将docker内部的gitlab暴露出来，需要添加 `external_url` 参数，详细配置参考 https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/doc/settings/configuration.md#configuration-options[configuration-options]，可以根据自己情况修改下面的启动脚本。
 
 .run-gitlab.sh
 ```bash
@@ -266,7 +266,7 @@ Gitlab实际执行的job都是在runner节点上运行的，这里我们使用�
 
 1. 找到注册token。访问 http://host:31480/admin/runners，会看到一段随机的 `registration token`。
 
-2. 修改下面yaml配置中的`REGISTRATION_TOKEN`参数值为上一步查询到的token，然后执行 `kubectl apply -f gitlab-runner.yaml`完成注册。
+2. 修改下面yaml配置中的 `REGISTRATION_TOKEN` 参数值为上一步查询到的token，然后执行 `kubectl apply -f gitlab-runner.yaml` 完成注册。
 +
 .gitlab-runner.yaml
 ```yaml
@@ -353,7 +353,7 @@ spec:
 
 1. 新建一个空项目。
 
-2. 在项目根路径创建`.gitlab-ci.yml`文件，这是gitlab默认的CI配置文件路径。
+2. 在项目根路径创建 `.gitlab-ci.yml`  文件，这是gitlab默认的CI配置文件路径。
 +
 .__.gitlab-ci.yml__
 ```yaml
