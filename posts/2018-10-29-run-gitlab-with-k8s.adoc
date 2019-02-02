@@ -176,6 +176,8 @@ kubectl taint nodes --all node-role.kubernetes.io/master-
 
 kubectl apply -f kubernetes-dashboard.yaml
 
+#CentOS firewalld is completely incompatible with kubernetes
+systemctl disable firewalld
 ```
 
 等待Pod启动完成后可以通过 https://host:30443 访问dashboard。
