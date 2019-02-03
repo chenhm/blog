@@ -103,6 +103,9 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
 sysctl --system
 
+# enable read-only port for heapster
+sed -i 's/KUBELET_EXTRA_ARGS=/KUBELET_EXTRA_ARGS=--read-only-port 10255 /' /etc/sysconfig/kubelet
+
 systemctl enable kubelet && systemctl start kubelet
 ```
 
@@ -178,6 +181,7 @@ kubectl apply -f kubernetes-dashboard.yaml
 
 #CentOS firewalld is completely incompatible with kubernetes
 systemctl disable firewalld
+systemctl stop firewalld
 ```
 
 等待Pod启动完成后可以通过 https://host:30443 访问dashboard。
