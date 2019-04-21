@@ -8,13 +8,13 @@
 
 每个主题至少有一个分区，主题只是一组命名的分区，而分区才是实际上的数据流。应用通常只向主题发送或订阅消息，生产者利用hashcode(消息带有key)或轮询(消息没有key)选择分区存储消息。每个分区内部消息是有序的，通过offset维护消息序号。
 
-<img src="images/ktdg_0105.png" width="80%" />
+![](images/ktdg_0105.png)
 
 ### 生产者(Producer)和消费者(Consumer)
 
 **生产者**只需要将消息尽量均衡的写到多个分区上，并不关心具体是哪个分区。但**消费者**需要知道自己应该处理哪个分区上的数据，以便相同**消费群组**中的消费者互不干扰。对于每个消费群组，里面包含的消费者数量需小于分区数量，否则有些消费者将没有分区可以处理。为了均衡消费者的处理能力，通常将分区数量配置为消费者的整数倍。在进行消费者扩容的时候，同时需要线性的对分区扩容。
 
-<img src="images/ktdg_0106.png" width="80%" />
+![](images/ktdg_0106.png)
 
 另外一种扩容策略是饱和式分区，预设足够多的分区，这样在消费者扩容的时候就无需扩容分区，类似Cassandra增加node的时候无需调整分区，很多时候这是个很好的策略，也避免了扩容时key的rehash，但在Kafka里有几个限制条件需要考虑：
 - Kafka的消费者是随业务变化而增加的，数量庞大，每个消费者都需要连到对应的分区上，连接以及再均衡开销巨大。当然这里我们可以采用消费者代理，减少消费者数量以提高性能。
@@ -32,7 +32,7 @@ Kafka集群中的每一台服务器都称之为broker。broker接收生产者的
 3. 每一个生产者/消费者都必须能和每一个broker通信，实现消息发送和读取。不同于Cassandra的节点同时可以充当代理，Kafka要求客户端直连分区所在节点。
 4. 客户端连接Kafka集群使用bootstrap-server发送的节点信息，请正确配置ADVERTISED_LISTENERS。
 
-<img src="images/kafka-communication.png" width="80%" />
+![](images/kafka-communication.png)
 
 在集群内部，某个broker会被选举为集群leader，作为协调者负责将分区分配给broker并监控broker，选举过程简单来说就是抢占 Zookeeper  的 `/controller` 节点。Zookeeper还负责保存所有 kafka 运行状态信息。
 
@@ -260,7 +260,7 @@ Java API的使用可以直接参考API手册，使用上比较简单，这里不
 
 Kafka Connect用于建立Kafka和其他系统之间的可靠流式传输。例如我们使用MQTT Connect连接MQTT Broker，从而方便的将IoT设备信息存储在Kafka。
 
-<img src="images/1548769650465.png" width="80%" />
+![](images/1548769650465.png)
 
 我们跑一个Kafka自带的例子将标准输入流写入topic中，体验下connect的能力。首先打开consumer监听topic。
 ```sh
