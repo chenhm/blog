@@ -9,7 +9,7 @@ sudo: false
 before_script:
   - git config --global user.name "chenhm"
   - git config --global user.email "chenhm@gmail.com"
-  - git clone --branch list https://${GH_REF} dist
+  - git clone --branch list https://github.com/${GH_REF}.git dist
 
 script:
   - curl -vL "https://api.github.com/repos/${GH_REF}/contents/posts?ref=master" -o dist/list.json
