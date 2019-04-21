@@ -11,15 +11,16 @@ before_script:
   - git config --global user.email "chenhm@gmail.com"
 
 script:
-  - curl -vL 'https://api.github.com/repos/chenhm/chenhm.github.com/contents/posts?ref=master' -o list.json
+  - curl -vL "https://api.github.com/repos/${GH_REF}/contents/posts?ref=master" -o ${GH_REF}/list.json
 
 after_success:
+  - cd ${GH_REF}
   - git add --all .
   - git commit --message "Automatically update list.json from travis-ci"
-  - git push --quiet "https://${GH_TOKEN}@${GH_REF}"
+  - git push --quiet "https://${GH_TOKEN}@github.com/${GH_REF}.git"
 
 # Note: you should set Environment Variables here or 'Settings' on travis-ci.org
 env:
   global:
-    - GH_REF: github.com/chenhm/chenhm.github.com.git
+    - GH_REF: chenhm/chenhm.github.com
     # - GH_TOKEN: 'Your GitHub Personal access tokens, via https://github.com/settings/tokens'
