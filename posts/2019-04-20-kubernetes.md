@@ -651,7 +651,7 @@ Pause 容器存在于每个 Pod 里面，我们第一节提到了 pause 负责�
 
 - k8s 启动状态不正常，首先检查 kubelet 日志
   ```bash
-journalctl -efu kubelet
+  journalctl -efu kubelet
   ```
 
 ## Other distributions
