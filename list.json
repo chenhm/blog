@@ -610,16 +610,16 @@
   {
     "name": "2018-10-29-run-gitlab-with-k8s.adoc",
     "path": "posts/2018-10-29-run-gitlab-with-k8s.adoc",
-    "sha": "1f77e3665873d8aee55c841301e084b630fa740b",
-    "size": 13276,
+    "sha": "28abc3151f313713c87de198ca1f210f3087f04e",
+    "size": 13267,
     "url": "https://api.github.com/repos/chenhm/chenhm.github.com/contents/posts/2018-10-29-run-gitlab-with-k8s.adoc?ref=master",
     "html_url": "https://github.com/chenhm/chenhm.github.com/blob/master/posts/2018-10-29-run-gitlab-with-k8s.adoc",
-    "git_url": "https://api.github.com/repos/chenhm/chenhm.github.com/git/blobs/1f77e3665873d8aee55c841301e084b630fa740b",
+    "git_url": "https://api.github.com/repos/chenhm/chenhm.github.com/git/blobs/28abc3151f313713c87de198ca1f210f3087f04e",
     "download_url": "https://raw.githubusercontent.com/chenhm/chenhm.github.com/master/posts/2018-10-29-run-gitlab-with-k8s.adoc",
     "type": "file",
     "_links": {
       "self": "https://api.github.com/repos/chenhm/chenhm.github.com/contents/posts/2018-10-29-run-gitlab-with-k8s.adoc?ref=master",
-      "git": "https://api.github.com/repos/chenhm/chenhm.github.com/git/blobs/1f77e3665873d8aee55c841301e084b630fa740b",
+      "git": "https://api.github.com/repos/chenhm/chenhm.github.com/git/blobs/28abc3151f313713c87de198ca1f210f3087f04e",
       "html": "https://github.com/chenhm/chenhm.github.com/blob/master/posts/2018-10-29-run-gitlab-with-k8s.adoc"
     }
   },
