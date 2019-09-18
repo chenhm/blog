@@ -41,7 +41,7 @@ Docker在containerd和runc之间还引入了containerd-shim，当runc启动容�
 
 - `NodePort`: 在每个节点上起一个固定的端口监听并转发服务。这是最常用的一种模式。
 
-- `LoadBalancer`: 需要依赖云服务厂商的 load balancer 服务。
+- `LoadBalancer`: 通常需要依赖云服务厂商的 load balancer 服务。在 bare metal 上则可以利用 MetalLb 创建 LoadBalancer 类型的 Service. LoadBalancer 本质上是给 SVC 分配一个专属的 EXTERNAL-IP ，并将该 IP 通知到 k8s 集群外部，这样在集群外部可以直接通过该 IP 访问 SVC。MetalLb 在实现上直接利用了 BPG 协议，MetalLb 自身扮演 EXTERNAL-IP 所在网段的路由，并跟上级 BPG 路由器连接，使得外部网络可以获得 EXTERNAL-IP 的路由信息。但因为该方式需要有上级 BPG，对于小型测试系统并不方便，MetalLb 于是提供了一个基于 ARP 的实现。因为 ARP 只能在二层网络寻址，所以只能是在可路由的 IP  网段内分一小段给 MetalLb 使用，MetalLb 根据预定的 IP 范围分配 EXTERNAL-IP 后，通过 Gratuitous ARP 广播到外部网络。
 
 - `ExternalName`: 用于访问集群外部服务的情况。设置 `spec.externalName: my.example.com`，当查找该服务的时候，cluster DNS将会返回 CNAME 记录 my.example.com，然后走上级DNS查找即可。
 
@@ -192,6 +192,8 @@ cat <<EOF > kubeadm.conf
 apiVersion: kubeadm.k8s.io/v1beta1
 kind: ClusterConfiguration
 controlPlaneEndpoint: "$EXTRA_IP:6443"
+networking:
+  podSubnet: 10.244.0.0/16
 apiServer:
   certSANs:
   - "$EXTRA_IP"
@@ -200,8 +202,7 @@ apiServer:
 EOF
 
 export {http,https}_proxy=http://192.168.56.1:1080
-curl -L -o cni.yaml "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version |
-base64 | tr -d '\n')"
+curl -L -o cni.yaml "https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 curl -L -o kubernetes-dashboard.yaml "https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml"
 unset http_proxy
 unset https_proxy
@@ -680,6 +681,7 @@ Red Hat的版本提供了非常完善的管理能力，支持公有云和私有�
 - [IBM开源技术微讲堂](http://ibm.biz/opentech-ma)
 - [How a container runtime is using cni](https://karampok.me/posts/container-networking-with-cni/)
 - [How To Inspect Kubernetes Networking](https://www.digitalocean.com/community/tutorials/how-to-inspect-kubernetes-networking)
+- [Using MetalLb with Kind](https://mauilion.dev/posts/kind-metallb/)
 
 ## Cheatsheet
 
