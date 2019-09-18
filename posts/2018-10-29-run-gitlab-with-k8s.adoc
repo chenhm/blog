@@ -1,4 +1,4 @@
-# 基于Kubernetes的Gitlab runner环境搭建（一）
+# 基于Kubernetes的Gitlab runner环境搭建
 
 :numbered:
 
