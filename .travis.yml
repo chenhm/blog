@@ -10,23 +10,18 @@ before_script:
   - git config --global user.name "chenhm"
   - git config --global user.email "chenhm@gmail.com"
   - git clone --branch gh-pages https://github.com/${GH_REF}.git dist
-  - cd dist
-  - git show-ref
-  - cd ..
 
 script:
   - mkdir -p archive
   - curl -vL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o archive/java-static-blog.jar
-  - echo "app.post-path=posts" > application.properties
   - java -Dfile.encoding=UTF-8 -jar archive/java-static-blog.jar
 
 after_success:
   - cd dist
   - git show-ref
   - echo "chenhm.com" > CNAME
-  - echo "<html><meta http-equiv="refresh" content="0;url=https://chenhm.com/list/1"></html>" > index.html
+  - echo '<html><meta http-equiv="refresh" content="0;url=https://chenhm.com/list/1"></html>' > index.html
   - cp index.html 404.html
-  - find -type d
   - git add --all .
   - git commit --message "Automatically update from travis-ci"
   - git push --quiet "https://${GH_TOKEN}@github.com/${GH_REF}.git" gh-pages:gh-pages
