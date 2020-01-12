@@ -13,9 +13,9 @@ before_script:
 
 script:
   - mkdir -p archive
-  - curl -vOL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o archive/java-static-blog-0.0.1.jar
+  - curl -vL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o archive/java-static-blog.jar
   - echo "app.post-path=posts" > application.properties
-  - java -Dfile.encoding=UTF-8 -jar archive/java-static-blog-0.0.1.jar
+  - java -Dfile.encoding=UTF-8 -jar archive/java-static-blog.jar
 
 after_success:
   - cd dist
