@@ -31,6 +31,55 @@
     <article>
      
      <h1 id="kafka-hands-on" class="md">Kafka Hands-on</h1>
+<div class="toc md">
+<h1>Table of Contents</h1>
+<ul class="toc-list">
+<li><a href="#kafka基础概念">Kafka基础概念</a>
+<ul>
+<li><a href="#主题topic和分区partition">主题(Topic)和分区(Partition)</a></li>
+<li><a href="#生产者producer和消费者consumer">生产者(Producer)和消费者(Consumer)</a></li>
+<li><a href="#broker和集群结构">Broker和集群结构</a></li>
+<li><a href="#练习">练习</a></li>
+</ul>
+</li>
+<li><a href="#可靠性与性能">可靠性与性能</a>
+<ul>
+<li><a href="#复制">复制</a></li>
+<li><a href="#offset管理">Offset管理</a></li>
+<li><a href="#rebalance">Rebalance</a></li>
+<li><a href="#消息传递保证">消息传递保证</a></li>
+<li><a href="#性能优化小结">性能优化小结</a></li>
+</ul>
+</li>
+<li><a href="#kafka的特性">Kafka的特性</a>
+<ul>
+<li><a href="#应用场景">应用场景</a></li>
+<li><a href="#其他类似服务">其他类似服务</a></li>
+</ul>
+</li>
+<li><a href="#发送和接收消息">发送和接收消息</a>
+<ul>
+<li><a href="#java-api-接口">Java API 接口</a></li>
+<li><a href="#connect-api">Connect API</a></li>
+<li><a href="#spring-kafka">Spring-kafka</a></li>
+<li><a href="#stream-api">Stream API</a></li>
+</ul>
+</li>
+<li><a href="#维护">维护</a>
+<ul>
+<li><a href="#原则">原则</a></li>
+<li><a href="#zookeeper-结构">Zookeeper 结构</a></li>
+<li><a href="#监控">监控</a></li>
+<li><a href="#清理">清理</a></li>
+</ul>
+</li>
+<li><a href="#参考资料">参考资料</a>
+<ul>
+<li><a href="#useful-commands">Useful commands</a></li>
+</ul>
+</li>
+</ul>
+</div>
 <p>这篇教程从Kafka的基础概念入手，通过实际运行一套Kafka集群环境，帮助大家理解Kafka工作原理以及如何有效开发Kafka应用。文中很多内容参考了Kafka官方文档、《Kafka权威指南》和“Kafka最佳实践”培训课程。实验环境需要一台4G以上内存、30G以上硬盘并且已配置好Docker的主机。</p>
 <h2 id="kafka基础概念" class="md">Kafka基础概念</h2>
 <h3 id="主题topic和分区partition" class="md">主题(Topic)和分区(Partition)</h3>

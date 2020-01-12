@@ -31,6 +31,75 @@
     <article>
      
      <h1 id="kubernetes-入门" class="md">Kubernetes 入门</h1>
+<div class="toc md">
+<h1>Table of Contents</h1>
+<ul class="toc-list">
+<li><a href="#core-concepts">Core concepts</a>
+<ul>
+<li><a href="#docker">Docker</a></li>
+<li><a href="#pod">Pod</a></li>
+<li><a href="#service">Service</a></li>
+<li><a href="#dns">DNS</a></li>
+<li><a href="#ingress">Ingress</a></li>
+</ul>
+</li>
+<li><a href="#install">Install</a>
+<ul>
+<li><a href="#minikube">minikube</a></li>
+<li><a href="#kubeadm">kubeadm</a>
+<ul>
+<li><a href="#install-kubeadm">Install kubeadm</a></li>
+<li><a href="#startup-kubernetes">Startup kubernetes</a></li>
+<li><a href="#setup-account-rbac">Setup account &amp; RBAC</a></li>
+<li><a href="#setup-worker-node">Setup worker node</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#application-deployment">Application deployment</a>
+<ul>
+<li><a href="#deployments">Deployments</a>
+<ul>
+<li><a href="#init-container">init container</a></li>
+<li><a href="#emptydir">emptydir</a></li>
+<li><a href="#healthcheck">healthcheck</a></li>
+<li><a href="#resources-limit">resources limit</a></li>
+</ul>
+</li>
+<li><a href="#config-maps">Config Maps</a></li>
+<li><a href="#storage">Storage</a>
+<ul>
+<li><a href="#persistent-volumepersistent-volume-claim">Persistent Volume/Persistent Volume Claim</a></li>
+<li><a href="#dynamic-provision-storage-class">Dynamic provision - storage class</a></li>
+</ul>
+</li>
+<li><a href="#statefulsets">StatefulSets</a></li>
+<li><a href="#daemon-sets">Daemon Sets</a></li>
+<li><a href="#logs">Logs</a></li>
+<li><a href="#helm-chart">Helm Chart</a></li>
+</ul>
+</li>
+<li><a href="#additional-concepts">Additional concepts</a>
+<ul>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#api-server">API Server</a></li>
+<li><a href="#cni">CNI</a></li>
+<li><a href="#nodeport-vs-loadbalancer-vs-ingress">NodePort vs LoadBalancer vs Ingress</a></li>
+<li><a href="#pause-container">Pause container</a></li>
+</ul>
+</li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#other-distributions">Other distributions</a>
+<ul>
+<li><a href="#k3s-rancher">K3s, Rancher</a></li>
+<li><a href="#openshift">OpenShift</a></li>
+<li><a href="#aws-eks">AWS EKS</a></li>
+</ul>
+</li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#cheatsheet">Cheatsheet</a></li>
+</ul>
+</div>
 <h2 id="core-concepts" class="md">Core concepts</h2>
 <p>Kubernetes(k8s)  是当前最主流的容器编排工具，它采用声明式的容器管理机制，用户在描述文件里定义期望的系统状态，k8s会监控整个集群，并努力达到用户所描述的状态。这篇指引会从基础概念入手，介绍k8s的基本功能，并在最后解释k8s的一些实现原理。</p>
 <h3 id="docker" class="md">Docker</h3>
