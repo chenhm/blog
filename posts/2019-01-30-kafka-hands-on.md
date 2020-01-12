@@ -1,4 +1,6 @@
-# Kafka Hands-on 
+# Kafka Hands-on
+
+[TOC]
 
 这篇教程从Kafka的基础概念入手，通过实际运行一套Kafka集群环境，帮助大家理解Kafka工作原理以及如何有效开发Kafka应用。文中很多内容参考了Kafka官方文档、《Kafka权威指南》和“Kafka最佳实践”培训课程。实验环境需要一台4G以上内存、30G以上硬盘并且已配置好Docker的主机。
 
