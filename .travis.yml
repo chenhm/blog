@@ -12,10 +12,10 @@ before_script:
   - git clone --branch gh-pages https://github.com/${GH_REF}.git dist
 
 script:
-  - find -type d
-  - curl -vOL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o java-static-blog-0.0.1.jar
+  - mkdir -p archive
+  - curl -vOL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o archive/java-static-blog-0.0.1.jar
   - echo "app.post-path=posts" > application.properties
-  - java -Dfile.encoding=UTF-8 -jar java-static-blog-0.0.1.jar
+  - java -Dfile.encoding=UTF-8 -jar archive/java-static-blog-0.0.1.jar
 
 after_success:
   - cd dist
@@ -24,6 +24,7 @@ after_success:
   - cp index.html 404.html
   - git add --all .
   - git commit --message "Automatically update from travis-ci"
+  - git show-ref
   - git push --quiet "https://${GH_TOKEN}@github.com/${GH_REF}.git" gh-pages:gh-pages
 
 # Note: you should set Environment Variables here or 'Settings' on travis-ci.org
