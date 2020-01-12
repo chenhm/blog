@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             SICP的习题解答2.17,2.31,2.32         </h1>
+     
+     <p>在这里记录读SICP时随手写的习题解答，所有的程序都是在DrScheme下使用R5RS运行通过，但不表明这就是正确解答，仅表明在SICP给的test case下获得了期望的输出。</p>
+<pre><code class="language-scheme">;; EXERCISE 2.31
+(define (last-pair items)
+(if (or(null? items) (null? (cdr items)) )
+items
+(last-pair(cdr items))
+)
+)
+(last-pair(list 23 72 149 34))
+
+
+; EXERCISE 2.31
+(define (square x) (* x x))
+(define (tree-map proc tree)
+(cond ((null? tree) '())
+((not (pair? tree)) (proc tree))
+(else (cons (tree-map proc (car tree))
+(tree-map proc (cdr tree))))
+)
+)
+(define (square-tree tree) (tree-map square tree))
+(square-tree
+(list 1
+(list 2 (list 3 4) 5)
+(list 6 7)))
+</code></pre>
+<p>运行结果：(1 (4 (9 16) 25) (36 49))</p>
+<pre><code class="language-scheme">;; EXERCISE 2.32
+(define (subsets s)
+(if (null? s)
+(list '())
+(let ((rest (subsets (cdr s))))
+(append rest (map (lambda (w)
+(cons (car s) w)) 
+rest)))))
+(subsets (list 1 2 3))
+</code></pre>
+<p>运行结果：(() (3) (2) (2 3) (1) (1 3) (1 2) (1 2 3))</p>
+<p>一个集合的所有子集可以看作集合中第一个元素与剩下元素的所有子集产生的组合。上面的lambda算式体现了这一思想。</p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

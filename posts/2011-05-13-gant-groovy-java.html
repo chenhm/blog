@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             使用gant混合编译groovy和java         </h1>
+     
+     <p>gant运行依赖groovy、ant，需要设置GANT_HOME、ANT_HOME、JAVA_HOME和GROOVY_HOME环境变量。但在groovy1.8中已经包含了ant对应的jar包，经测试不再需要ant（ANT_HOME环境还是需要设置的，gant的脚本会检查这个变量）。 然后我们配置build.gant脚本执行编译指令。 首先定义groovyc任务：</p>
+<pre><code class="language-groovy">ant.taskdef (  name : 'groovyc' , classname : 'org.codehaus.groovy.ant.Groovyc' )
+</code></pre>
+<p>定义lib文件：</p>
+<pre><code class="language-groovy">def lib =path { fileset(dir:&quot;$app/lib&quot;) {
+        include(name : &quot;*.jar&quot;)
+    }  
+}
+</code></pre>
+<p>定义groovyc任务并使用javac内嵌属性</p>
+<pre><code class="language-groovy">groovyc (srcDir:srcDir,destDir:buildDir,classpath:lib) { 
+    javac ( debug : 'on',nowarn:'on' ,target:1.6,source:1.6 ,deprecation:'on' )  {
+        compilerarg(value:'-Xlint:unchecked')   //附加的编译参数
+    }
+}
+</code></pre>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

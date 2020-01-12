@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             virtualBox下安装archlinux         </h1>
+     
+     <p>这两天折腾archlinux，遇到一些问题，记录下来以备查验。</p>
+<ol>
+<li>archlinux在163有镜像，速度很快，推荐使用。pacman的镜像配置可以参考<a href="http://mirrors.163.com/.help/archlinux.html">http://mirrors.163.com/.help/archlinux.html</a></li>
+<li>配置好pacman之后推荐立即安装yaourt，yaourt提供了海量软件库，大部分软件都可以在yaourt找到，操作命令跟pacman类似，带有语法加亮。安装可以参考<a href="https://wiki.archlinux.org/index.php/Yaourt_(简体中文)">https://wiki.archlinux.org/index.php/Yaourt_(简体中文)</a> ，archlinux的大部分问题也都可以在wiki找到答案。</li>
+<li>安装X需要virtualBox专用显卡驱动，是由社区提供的，参考 <a href="https://wiki.archlinux.org/index.php/VirtualBox">https://wiki.archlinux.org/index.php/VirtualBox</a>。一开始我试图在VirtualBox的官网找这个驱动，结果浪费了很长时间，没看wiki的害处啊。</li>
+<li>配置中文字符集，可以用localedef命令或者参考<a href="https://wiki.archlinux.org/index.php/Locale_(简体中文)">https://wiki.archlinux.org/index.php/Locale_(简体中文)</a>使用locale-gen.
+<pre><code>$localedef -f 字符集 -i locale定义文件 生成的locale的名称
+例如	
+$localedef -f UTF-8 -i zh_CN zh_CN.UTF-8
+</code></pre>
+</li>
+</ol>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+     <h1>[译]利用R数据科学增强Java Spring应用</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_为什么我们不能只使一种语言">为什么我们不能只使一种语言?</a></li>
+<li><a href="#_java_r_spring_application">Java + R Spring application</a></li>
+<li><a href="#_graalvm_中的_javar_交互">GraalVM 中的 Java — R 交互</a></li>
+<li><a href="#_结语">结语</a></li>
+<li><a href="#_tldr">TL;DR</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>原文： <a href="https://medium.com/graalvm/enhance-your-java-spring-application-with-r-data-science-b669a8c28bea">Enhance your Java Spring application with R data science</a></p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+原文以 MacOS 上的 GraalVM 企业版为例，翻译时改成了基于 Linux 的 GraalVM 社区版。文章内容有少量修正。
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>在这篇文章，我们将使用 GraalVM 运行一个简单的 Java 编写的 Spring 应用，并利用 R 语言的函数库 ggplot2 来绘制数据。</p>
+</div>
+<div class="paragraph">
+<p>GraalVM 是一种多语言虚拟机，能够有效地运行各种语言，如Java、Scala、JavaScript、Ruby、R 和原生语言编译的llvm字节码。</p>
+</div>
+<div class="paragraph">
+<p>更有趣的是，GraalVM允许你在单个程序中混合语言。Jav、JavaScript、Ruby或R相互调用或在相同的数据上操作，还没有性能损失。让我们研究一下如何在Spring boot应用程序中实现Java和R之间的互操作。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_为什么我们不能只使一种语言">为什么我们不能只使一种语言?</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>每种编程语言都有它自己的生态系统，并适合特定任务。例如，R对于数据处理、数据可视化和机器学习都是很好的。能够自由选择语言，可以让我们用最好的工具简化任务。</p>
+</div>
+<div class="paragraph">
+<p>例如，我们想要一个具有简单视觉输出的应用程序。在R中绘制数据非常容易，所以我们选择R。ggplot2是一个非常流行的R包，用于绘制各种数据，这听起来就像是正确的工具！</p>
+</div>
+<div class="paragraph">
+<p>现在，我们不期望每个应用程序都需要数据绘图能力，或者应该立即成为一个多语言应用程序。但我们坚信，每种编程语言都有独特的东西可以提供。而且，重用现有的解决方案比从头重新创建它们更有效。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_java_r_spring_application">Java + R Spring application</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本文中使用的示例程序可以从 <a href="https://github.com/graalvm/graalvm-demo">graalvm/graalm-demos</a> 获得。它是一个 Spring boot 应用程序，使用R <code>ggplot2</code> 库来渲染当前机器上的CPU负载图。</p>
+</div>
+<div class="paragraph">
+<p>为了运行示例程序，你需要一个同时支持 Java(JVM bytecode) 和 R 的运行时。</p>
+</div>
+<div class="paragraph">
+<p><a href="http://www.graalvm.org/downloads/">下载</a> GraalVM 社区版或企业版都可以，这里我们使用 Linux 社区版。</p>
+</div>
+<div class="paragraph">
+<p>解压下载的文件，并设置 <code>GRAALVM_HOME</code> 指向解压后的目录。</p>
+</div>
+<div class="paragraph">
+<p>添加 <code>$GRAALVM_HOME/bin</code> 到 <code>$PATH</code>.</p>
+</div>
+<div class="paragraph">
+<p>设置 <code>JAVA_HOME=$GRAALVM_HOME</code> 确保 Maven 可以访问 <code>graal-sdk.jar</code> 中的多语言 API 类。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">export GRAALVM_HOME=/path/to/GraalVM
+export JAVA_HOME=$GRAALVM_HOME
+export PATH=$GRAALVM_HOME/bin:$PATH</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>克隆 demo 应用并进入 <code>spring-r</code> 目录:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>git clone https://github.com/graalvm/graalvm-demos
+cd spring-r</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>由于这个 Java 应用使用了 <code>ggplot2</code> R库，还需要安装 R 语言支持:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>gu -c install org.graalvm.R</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>如前所述，它还使用了ggplot2，这是一个非常流行的可视化数据包。下面的命令将下载ggplot2依赖的源代码，并将它们编译到 GraalVM 目录下。（注意：这可能需要几分钟时间。）</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Rscript -e "install.packages('ggplot2', repos='http://cran.rstudio.com/')"</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>现在我们终于可以运行 demo 应用了:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>mvn spring-boot:run</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>等几秒钟让 Spring 完成初始化，然后就可以在浏览器中访问 <code><a href="http://localhost:8080/load" class="bare">http://localhost:8080/load</a></code> 了。</p>
+</div>
+<div class="paragraph">
+<p>这个页面加载一个svg图像，并且通过 HTTP headers 让浏览器每秒刷新一次。</p>
+</div>
+<div class="paragraph">
+<p>几秒之后，你会看到像这样的图像:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://raw.githubusercontent.com/${conf.repo}/${conf.branch}/${conf.path}/images/spring-r-systemload.png" alt="spring r systemload">
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_graalvm_中的_javar_交互">GraalVM 中的 Java — R 交互</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>让我们看代码实现。绘图函数，用R编写，保存在 <code>plot.R</code> 文件中。它定义了一个全局变量 <code>data</code> 和一个将给定数字追加到 <code>data</code> 的函数，然后将 <code>data</code> 绘制为svg图像。最后 <code>svg.off()</code> 语句将svg图像作为字符串返回。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-R" data-lang="R">library(ggplot2)
+data &lt;&lt;- numeric(100)  # 创建长度100的double型vector
+function(v) {
+  svg()                # 打开svg设备
+  data &lt;&lt;- c(data[2:100], v)  # 用后99个数和新值创建新数据集合
+  plot &lt;- ggplot(data = data.frame(systemLoad = data, time = -99:0),
+  aes(x=time, y=systemLoad, group=1)) +  # time为横坐标，systemLoad为纵坐标
+  geom_line(color="orange") +    # 绘制线图
+  expand_limits(x=0, y=0)        # 固定坐标原点，避免坐标轴的自动截取
+  print(plot)          # 输出到svg设备
+  svg.off()            # 关闭svg设备并返回
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>那么我们如何在Java中使用这个函数呢？由于我们编写的是Spring应用，所以我们可以定义GraalVM的交互组件为Spring bean。要使用GraalVM 多语言功能，我们需要为使用的动态语言定义一个上下文（实际上GraalVM中的所有语言的交互方式都是类似的）。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Bean
+public Context getGraalVMContext() {
+  return Context.newBuilder().allowAllAccess(true).build();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>接下来，我们使用这个 context 执行我们的 R 文件。由于文件中最后执行的是一个函数定义，它会作为 <code>ctx.eval()</code> 的结果返回，所以我们可以转换这个返回值为 <code>java.util.Function</code> 实例。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Value(value = "classpath:plot.R")
+private Resource rSource;
+
+@Bean
+Function&lt;Double, String&gt; getPlotFunction(@Autowired Context ctx)
+throws IOException {
+  Source source = Source.newBuilder("R", rSource.getURL()).build();
+  return ctx.eval(source).as(Function.class);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>为了让我们的应用访问 R 文件，我们将文件放在了属于类路径的 <code>resources</code> 目录，然后通过 <code>@Value</code> 注解 <code>Resource</code> 字段来配置对它的访问。</p>
+</div>
+<div class="paragraph">
+<p>现在到了最棒的部分，在一个单独的R文件中定义的R函数被作为一个普通的 Spring bean 暴露，因此我们可以直接声明对应类型的属性，并通过Spring依赖注入机制设值。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Autowired
+private Function&lt;Double, String&gt; plotFunction;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>当应用初始化的时候，<code>plotFunction</code> 字段将会被设置为 R 源文件的执行结果。代码其余部分则很简单，我们在控制器中定义了一个 RequestMapping，它将 <code>plotFunction</code> 函数生成的svg文件返回到浏览器：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@RequestMapping(value = "/load", produces = "image/svg+xml")
+public ResponseEntity&lt;String&gt; load() {
+  HttpHeaders responseHeaders = new HttpHeaders();
+  responseHeaders.set("Refresh", "1");
+  return new ResponseEntity&lt;String&gt;(
+     plotFunction.apply(
+       ManagementFactory.getOperatingSystemMXBean()
+                        .getSystemLoadAverage()),
+     responseHeaders,
+     HttpStatus.OK);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在这段代码中有些有意思的地方。执行过程中，我们跨越语言障碍从Java到R再回到Java。请注意 <code>plotFunction</code> 函数接受一个普通的 Java double 作为参数，并返回一个普通的 Java 字符串。R代码自动处理这些值，而不需要手工转换。</p>
+</div>
+<div class="paragraph">
+<p>例如，我们将一个DataHolder对象传递给R：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public static class DataHolder {
+  public double value;
+  public DataHolder(double v) {
+    value = v;
+  }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在R中，使用常规的R字段访问方式直接访问DataHolder的值：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-R" data-lang="R">function(dataHolder) {
+  svg()
+  data &lt;&lt;- c(data[2:100], dataHolder$value)
+  ...
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>其他操作也是类似的，例如我们希望通过一个统一的 Java 日志对象记录全部日志。</p>
+</div>
+<div class="paragraph">
+<p>假设有如下日志对象：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public class LogHolder {
+private static final Log LOG =
+                   LogFactory.getLog(SpringRApplication.class);
+public static void log(double value, Object... args) {
+  LOG.info(String.format("Logging (value = %s): %s", value,
+                                        Arrays.toString(args)));
+  }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>下面的代码段显示了如何在 R 中调用 Java <code>LogHolder</code> 类型的静态 <code>log</code> 方法:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-R" data-lang="R">logHolder &lt;- java.type("org.graalvm.demos.springr.LogHolder")
+logHolder$log(dataHolder$value, data[90:100])</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>非常棒，对吧。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_结语">结语</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>在本文中，我们讨论了用另一种语言 R 来编写代码增强一个普通的Java应用程序。每种编程语言都有它自己的生态系统，并且对某些问题非常有用。我们使用了一个普通的Spring boot应用程序，并添加了一个小的R脚本，以生成CPU负载图。将它们绑定在一起是相当简单的，因为GraalVM允许您将动态语言的成员导出为Spring bean。</p>
+</div>
+<div class="paragraph">
+<p>我们非常想知道您想从其他语言的生态系统中添加什么到Java应用程序中，并尝试使用GraalVM实现它。如果你有想法或问题，请举手！ <a href="https://twitter.com/shelajev">@shelajev</a> 总是乐于聊天，ping他吧。</p>
+</div>
+<div class="paragraph">
+<p>如果你想知道GraalVM还能做什么，请阅读Chris Seaton的博客文章 <a href="https://medium.com/graalvm/graalvm-ten-things-12d9111f307d">“GraalVM可以做的10件事”</a>。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tldr">TL;DR</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Marvel: “无限战争”是史上最有野心的跨界事件。</p>
+</div>
+<div class="paragraph">
+<p>GraalVM 笑了: 要不要看看 R 中的 Spring bean.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Value(value = "classpath:plot.R")
+private Resource rSource;
+
+@Autowired
+private Function&lt;Double, String&gt; plotFunction;
+
+@Bean
+Function&lt;Double, String&gt; getPlotFunction(@Autowired Context ctx) throws IOException {
+    Source source = Source.newBuilder("R", rSource.getURL()).build();
+    return ctx.eval(source).as(Function.class);
+}
+
+@RequestMapping(value = "/load", produces = "image/svg+xml")
+public ResponseEntity&lt;String&gt; load() {
+  HttpHeaders responseHeaders = new HttpHeaders();
+  responseHeaders.set("Refresh", "1");
+  return new ResponseEntity&lt;String&gt;(
+     plotFunction.apply(
+       ManagementFactory.getOperatingSystemMXBean()
+                        .getSystemLoadAverage()),
+     responseHeaders,
+     HttpStatus.OK);
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

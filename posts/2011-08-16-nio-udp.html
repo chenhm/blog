@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             NIO与UDP         </h1>
+     
+     <p>网上看到很多基于NIO设计的UDP例子，其实对于UDP来说NIO没有意义。 我们先来看看为什么TCP需要NIO。TCP协议带有连接控制，当我们建立一个socket通道之后便可以在这个通道上进行读写。如果存在多个连接（即每次accept()之后创建的通道），我们便需要多个线程在每个通道上监听，以便及时处理消息。由于线程开销巨大，以这种模式难以维持较高的连接数。于是我们改为使用少数几个线程在所有通道上进行轮询，如果有新的数据则将这些数据丢给业务线程处理，系统中也就不再有大量的等待线程，资源得到充分利用，这就是NIO的思想。NIO之所以能够大量减少资源消耗是因为TCP服务上存在多个通道，而每个通道上并不总是有数据，但UDP是无连接协议，如果使用NIO模式则拿到的永远是同一个通道，无法提高receive()的效率，所以对于UDP协议使用NIO还是BIO都没有区别，而且NIO基于通知的处理模型可能导致效率进一步下降。 既然说UDP是无连接的，为什么DatagramChannel还提供了connect方法呢？因为UDP每次发送消息的时候都需要建立临时套接字，进行路由查找。如果只和一个IP地址交换数据报，在客户端显式建立连接可以大大提高效率。但对于服务端而言，如果需要和多个客户端通讯则不能使用connect方法。</p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

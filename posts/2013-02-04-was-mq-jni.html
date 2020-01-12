@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             WAS连接MQ以及JNI查找的问题         </h1>
+     
+     <h4 id="was是通过jni的方式连接mq对于jni连接的问题我们都可以按以下方式检查" class="md">WAS是通过JNI的方式连接MQ，对于JNI连接的问题我们都可以按以下方式检查。</h4>
+<ol>
+<li>
+<p>首先要求须虚拟机和MQ都是64bit或32bit，不可混用。</p>
+<p>1) <code>java -version</code> 如果显示的版本中包含了64bit的字样，则是64位的java，否则是32位的。</p>
+<p>2) <code>dump -X32_64 -ov /usr/mqm/java/lib64/libmqjbnd05.so|grep Magic</code> 或 <code>file libmqjbnd05.so</code>查看对应的lib是64bit还是32bit</p>
+</li>
+<li>
+<p>检查CLASSPATH是否有对应的jar包。</p>
+</li>
+</ol>
+<p>可以通过打印System.getProperties(&quot;java.class.path&quot;)或通过kill -3查看javacore文件中的对应参数确认。</p>
+<ol>
+<li>检查LIBPATH是否有对应的so文件
+<pre><code>env|grep LIBPATH（AIX） 
+env|grep LD_LIBRARY_PATH（linux） 
+</code></pre>
+</li>
+</ol>
+<p>可通过打印System.getProperties(&quot;java.library.path&quot;)或通过kill -3查看javacore文件中的对应参数确认。</p>
+<h4 id="具体到was连接mq如果报错无法找到mq的class则按如下的顺序检查" class="md">具体到WAS连接MQ如果报错无法找到MQ的CLASS，则按如下的顺序检查：</h4>
+<ol>
+<li>
+<p>检查WAS版本是64位还是32位： /usr/IBM/WebSphere/AppServer/java/bin/java -version 如果显示的版本中包含了64bit的字样，则是64位的WAS，否则是32位的。</p>
+</li>
+<li>
+<p>检查/usr/IBM/WebSphere/AppServer/lib 目录下是否已包含了MQ的类com.ibm.mq.jar ，以及 libmqjbnd05.so 如果没有，则请从MQ安装目录下拷贝：</p>
+<pre><code>cp /usr/mqm/java/lib/com.ibm.mq.jar /usr/IBM/WebSphere/AppServer/lib 
+cp /usr/mqm/java/lib64/libmqjbnd05.so /usr/IBM/WebSphere/AppServer/lib 
+</code></pre>
+</li>
+<li>
+<p>修改<code>/usr/IBM/WebSphere/AppServer/profile/bin/setupCmdLine.sh</code> 中的AIX启动环境变量部分，增加 <code>LIBPATH=$LIBPATH:/usr/mqm/lib64</code></p>
+</li>
+<li>
+<p>检查java.library.path中是否包含系统libpath（例如/usr/lib/）以及是否有MQ的so文件，如果有则使用dltmqlnk /usr/lib/命令删除。参考：<a href="http://www.mqseries.net/phpBB2/viewtopic.php?t=54232&amp;sid=2eff95d42dc0158e0e1d1a71a0e3bdf1">http://www.mqseries.net/phpBB2/viewtopic.php?t=54232&amp;sid=2eff95d42dc0158e0e1d1a71a0e3bdf1</a></p>
+</li>
+</ol>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

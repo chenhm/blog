@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             Go语言交叉编译环境搭建         </h1>
+     
+     <p>Go对交叉编译有较完善的支持，我们以Linux环境编译windows目标文件为例，介绍如何从零搭建一个Go语言交叉编译环境。</p>
+<p>首先从<a href="http://golang.org/dl/">Go project's downloads page</a>下载源码包解压，设置环境变量并make。</p>
+<pre><code>export GOROOT=~/go     #go源码解压的路径，这里假设为用户的根目录
+export PATH=$GOROOT/bin:$PATH
+export CGO_ENABLED=0
+export GOOS=windows    #如果目标文件是linux则改成GOOS=linux
+export GOARCH=386      #如果是64位则改成GOARCH=amd64
+cd ~/go/src &amp;&amp; ./make.bash
+</code></pre>
+<p>此时在<code>~/go/pkg</code>目录下已经能看到windows_386版本的系统库文件。旧版go可能会要求设置GOPATH环境变量，GOPATH环境变量用于指定除$GOROOT之外的包含Go项目源代码和二进制文件的目录。go install和go tool会用到GOPATH作为编译后二进制的存放目的地和import包时的搜索路径。我们直接使用$GOROOT所以不再设定。</p>
+<p>现在我们安装第三方依赖库，例如<code>code.google.com/p/mahonia</code>编码库。</p>
+<pre><code>cd ~/go/src/pkg
+hg clone https://code.google.com/p/mahonia/ code.google.com/p/mahonia
+go install code.google.com/p/mahonia
+</code></pre>
+<p>同样，执行后我们可以在<code>~/go/pkg/windows_386/</code>找到编译好的<code>code.google.com/p/mahonia.a</code>库文件。 如果使用到windows资源文件，还需要安装<a href="https://sourceware.org/binutils/">GNU Binutils windres</a>,请下载源码包并使用<code>configure --enable-targets=all</code>模式安装。 至此，我们的交叉编译环境就搭建好了，编译过程跟普通编译一样，make就好。</p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

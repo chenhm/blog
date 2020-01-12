@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+     <h1>From Spring to Spring Boot</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_spring_context">1. spring context</a>
+<ul class="sectlevel2">
+<li><a href="#_创建container">1.1. 创建Container</a></li>
+<li><a href="#_常用配置">1.2. 常用配置</a>
+<ul class="sectlevel3">
+<li><a href="#_applicationcontextaware">1.2.1. ApplicationContextAware</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_spring_aop">2. spring aop</a>
+<ul class="sectlevel2">
+<li><a href="#_aop概念">2.1. AOP概念</a></li>
+<li><a href="#_自定义切面">2.2. 自定义切面</a></li>
+<li><a href="#_利用子定义注解创建切面">2.3. 利用子定义注解创建切面</a></li>
+</ul>
+</li>
+<li><a href="#_spring_mvc">3. spring mvc</a></li>
+<li><a href="#_spring_websocket">4. spring websocket</a></li>
+<li><a href="#_spring_tx">5. spring tx</a></li>
+<li><a href="#_spring_boot">6. spring boot</a></li>
+<li><a href="#_code_description">Appendix A: Code Description</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Frank Chen &lt;<a href="mailto:chenhm@gmail.com">chenhm@gmail.com</a>&gt;</p>
+</div>
+<div class="paragraph">
+<p>这是关于spring核心功能的小指南，方便快速理解spring，需要有一点Spring使用基础，样例代码可以在 <a href="https://github.com/chenhm/from-spring-to-spring-boot" class="bare">https://github.com/chenhm/from-spring-to-spring-boot</a> 找到。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_context">1. spring context</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_创建container">1.1. 创建Container</h3>
+<div class="paragraph">
+<p>Spring核心是个ioc container，所有实现 <code>org.springframework.context.ApplicationContext</code> 接口的类都是spring提供的container，可以根据需要选择，常见的有</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>AnnotationConfigApplicationContext</code></p>
+<div class="paragraph">
+<p>根据扫描到的注解创建container, 充分利用注解的便利性</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Configuration
+@ComponentScan({"com.chenhm"}) <b class="conum">(3)</b>
+@ImportXml("classpath:com/company/data-access-config.xml") <b class="conum">(4)</b>
+public class AppLocal {
+    public static void main(String[] args) {
+        AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(); <b class="conum">(1)</b>
+        ctx.getEnvironment().setActiveProfiles("local");
+        ctx.register(AppLocal.class);  <b class="conum">(2)</b>
+        ctx.refresh();
+        ctx.registerShutdownHook();
+    }
+
+    @Bean
+    @Profile("local")
+    public DataSource local() {
+        return initDataSource();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>创建一个空的Container</p>
+</li>
+<li>
+<p>注入当前类，注意这是个 <code>@Configuration</code> 类</p>
+</li>
+<li>
+<p>扫描 <code>com.chenhm</code> 包查找 <code>@Component</code> 注解</p>
+</li>
+<li>
+<p>导入xml配置的bean</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>使用上面配置类的DataSource：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">package com.chenhm;
+
+@Repository
+public class JdbcFooRepository implements FooRepository {
+
+    @Autowired
+    private DataSource dataSource;
+
+    // ...
+}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><code>ClassPathXmlApplicationContext</code></p>
+<div class="paragraph">
+<p>根据classpath中的xml配置文件创建container，配置繁琐，但更灵活。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">ApplicationContext ctx = new ClassPathXmlApplicationContext("applicationContext.xml");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>下面这个xml配置与上面注解的方式是等效的</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml">&lt;context:annotation-config /&gt;
+&lt;context:component-scan base-package="com.chenhm" /&gt;</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><code>XmlWebApplicationContext</code></p>
+<div class="paragraph">
+<p>spring在web应用中的默认container，通常用下面的方式初始化</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml">&lt;context-param&gt;
+    &lt;param-name&gt;contextConfigLocation&lt;/param-name&gt;
+    &lt;param-value&gt;/WEB-INF/applicationContext*.xml&lt;/param-value&gt;
+&lt;/context-param&gt;
+
+&lt;listener&gt;
+   &lt;listener-class&gt;
+        org.springframework.web.context.ContextLoaderListener
+   &lt;/listener-class&gt;
+&lt;/listener&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>或者</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml"> &lt;servlet&gt;
+   &lt;servlet-name&gt;dispatcher&lt;/servlet-name&gt;
+   &lt;servlet-class&gt;
+     org.springframework.web.servlet.DispatcherServlet
+   &lt;/servlet-class&gt;
+   &lt;init-param&gt;
+     &lt;param-name&gt;contextConfigLocation&lt;/param-name&gt;
+     &lt;param-value&gt;/WEB-INF/spring/dispatcher-config.xml&lt;/param-value&gt;
+   &lt;/init-param&gt;
+   &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+ &lt;/servlet&gt;</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_常用配置">1.2. 常用配置</h3>
+<div class="sect3">
+<h4 id="_applicationcontextaware">1.2.1. ApplicationContextAware</h4>
+<div class="paragraph">
+<p>当Spring识别到ApplicationContextAware后，会将当前容器注入该对象，方便操作容器</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Bean
+public class MyContext implements ApplicationContextAware {
+
+   private static ApplicationContext appContext;
+
+   @Override
+   public void setApplicationContext(ApplicationContext applicationContext)
+         throws BeansException {
+      appContext = applicationContext;
+   }
+
+   public static &lt;T&gt; T getBean(Class&lt;T&gt; clazz) {
+      return appContext.getBean(clazz);
+   }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>然后可以在任何位置访问</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">MyClass myClass = MyContext.getBean(MyClass.class)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_aop">2. spring aop</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_aop概念">2.1. AOP概念</h3>
+<div class="paragraph">
+<p>IoC解决了对象依赖问题，AOP则可以处理代码的通用逻辑，大大简化编码。在AOP以前，我们通常使用模版类提供的回调接口或interceptor来实现，比如servlet filter接口。由于需要预先设计接口，这种方式并不灵活直观。AOP则可以运行时动态拦截代码，插入通用逻辑，提供了极高的便利。拦截代码主要依赖动态代理（仅针对接口）和字节码修改技术。另外我们也可以使用Load-time instrumentation和Compile-time instrumentation，但一个需要Java agent，使用起来不够方便，一个只能在Compile-time做，不够灵活，当然instrumentation也有优势，它可以脱离容器运行。</p>
+</div>
+<div class="paragraph">
+<p>Spring AOP 有几个核心概念：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Join point</em>: 连接点，定义在哪里(哪些点)加入你的逻辑功能，对于Spring</p>
+</li>
+<li>
+<p><em>Pointcut</em>: 切入点，即一组Join point，Spring默认使用AspectJ的表达式语法匹配</p>
+</li>
+<li>
+<p><em>Advice</em>: 通知，指拦截到jointpoint之后所要做的事情，Spring AOP中分为前置通知(Before advice)、后置通知(AfterreturningAdvice)、异常通知(ThrowAdvice)、最终通知(AfterThrowing)、环绕通知(AroundAdvice)。使用AspectJ annotation 参考 <a href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/aop.html" class="bare">http://docs.spring.io/spring/docs/current/spring-framework-reference/html/aop.html</a></p>
+</li>
+<li>
+<p><em>Aspect</em>: 切面，Advice和Pointcut的组合，在Spring中也叫 <em>advisor</em>，参考下面的spring事务配置理解</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml">&lt;tx:advice id="txAdvice" transaction-manager="txManager"&gt;
+   &lt;tx:attributes&gt;
+      &lt;tx:method name="get*" read-only="true"/&gt;
+      &lt;tx:method name="*"/&gt;
+   &lt;/tx:attributes&gt;
+&lt;/tx:advice&gt;
+
+&lt;aop:config&gt;
+   &lt;aop:pointcut id="userServicePointCut" expression="within(com.chenhm.dao.*)"/&gt;
+   &lt;aop:advisor advice-ref="txAdvice" pointcut-ref="userServicePointCut"/&gt;
+&lt;/aop:config&gt;</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><em>Introduction</em>: 引入，Introduction 可以在运行期给一个class增加新的接口并指定接口的实现，也可以添加方法或Field</p>
+</li>
+<li>
+<p><em>Target object</em>: 就是advised object，在spring中永远是代理对象</p>
+</li>
+<li>
+<p><em>AOP proxy</em>: JDK dynamic proxy 或 CGLIB proxy，用于实现 <em>Aspect</em></p>
+</li>
+<li>
+<p><em>Weaving</em>: 织入，应用 <em>Aspect</em> 创建 <em>advised object</em> 的过程，可以在compile time (例如AspectJ compiler), load time 或 runtime。Sping 的 weaving 发生在 runtime.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_自定义切面">2.2. 自定义切面</h3>
+<div class="paragraph">
+<p>除了上面xml方式配置切面外，Spring还使用aspectj注解创建切面，例子如下：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Aspect <b class="conum">(1)</b>
+@Component <b class="conum">(2)</b>
+public class LogAspect {
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Before("execution(public * org.springframework.data.rest.webmvc.RepositoryEntityController.get*(..)) &amp;&amp; args(resourceInformation,..)") <b class="conum">(3)</b>
+    public void before(JoinPoint jp, RootResourceInformation resourceInformation) {
+        logger.info("before " + jp); <b class="conum">(4)</b>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>使用 <code>@Aspect</code> 注解标记切面类</p>
+</li>
+<li>
+<p><code>@Component</code> 使spring在容器内创建该类，也可通过xml配置让spring感知此类</p>
+</li>
+<li>
+<p>Pointcut声明，注意参数需要用args标记</p>
+</li>
+<li>
+<p>JoinPoint可以获得当前方法和参数信息</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_利用子定义注解创建切面">2.3. 利用子定义注解创建切面</h3>
+<div class="paragraph">
+<p>Spring本身大量使用了自定义注解，大大方便了开发者，我们也可以定义自己的注解配合切面完成通用功能。下面是个记录日志的例子。</p>
+</div>
+<div class="listingblock">
+<div class="title">Annotation</div>
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AroundLog {
+    String level() default "info";
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Advice method</div>
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Around("@annotation(aroundLog)") <b class="conum">(1)</b>
+public Object AroundLog(ProceedingJoinPoint jp, AroundLog aroundLog <b class="conum">(2)</b>
+            ) throws Throwable {
+    try {
+        log(logger, aroundLog.level(), "start " + jp );
+        return jp.proceed(); <b class="conum">(3)</b>
+    } finally {
+        log(logger, aroundLog.level(), "finished " + jp );
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>匹配带有annotation的方法</p>
+</li>
+<li>
+<p>方法上的annotation类型是AroundLog</p>
+</li>
+<li>
+<p>调用原方法</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">Call example</div>
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@RestController
+@RequestMapping("/rest/")
+public class TodoController {
+    @AroundLog(level = "debug")
+    @RequestMapping(value = "todoes/{id}", produces = MediaType.APPLICATION_JSON_VALUE )
+    public Todo findOne(@PathVariable Long id){
+        return todoRepository.findOne(id);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上面的代码我们先创建了名为 <code>AroundLog</code> 的注解类型，然后通过Pointcut表达式匹配，并定义了该切面的行为，最后在业务代码中通过 <code>@AroundLog(level = "debug")</code> 调用。Spring完成类型增强后生成的新代码大致伪码如下</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@RestController
+@RequestMapping("/rest/")
+public class TodoController$$FastClassBySpringCGLIB$$18a9e4f3 {
+    final TodoController todoController
+
+    @RequestMapping(value = "todoes/{id}", produces = MediaType.APPLICATION_JSON_VALUE )
+    public Todo findOne(@PathVariable Long id){
+        return AroundLog(() -&gt; {
+            todoController.findOne(id)
+        }, aroundLog);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_mvc">3. spring mvc</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>早期Spring MVC是通过返回 <code>ModelAndView</code> 对象实现model和view的绑定。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@RequestMapping(value = "todo.html", produces = MediaType.TEXT_HTML_VALUE )
+public ModelAndView todo_html(){
+    return new ModelAndView("todo").addObject("todoList", todoRepository.findAll());
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>至于渲染层则可以通过xml配置灵活替换。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml">&lt;!-- freemarker config --&gt;
+&lt;bean id="freemarkerConfig" class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer"&gt;
+    &lt;property name="templateLoaderPath" value="/WEB-INF/freemarker/"/&gt;
+&lt;/bean&gt;
+
+&lt;!--
+View resolvers can also be configured with ResourceBundles or XML files. If you need
+different view resolving based on Locale, you have to use the resource bundle resolver.
+--&gt;
+&lt;bean id="viewResolver" class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver"&gt;
+    &lt;property name="cache" value="true"/&gt;
+    &lt;property name="prefix" value=""/&gt;
+    &lt;property name="suffix" value=".ftl"/&gt;
+&lt;/bean&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>现在后端更加服务化，通常只返回rest接口数据，我们可以使用 <code>@RestController</code> 类似2.3节的代码创建rest服务，spring会自动将Bean映射为json或xml。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_websocket">4. spring websocket</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Spring WebSocket提供了STOMP over WebSocket的能力，这使我们可以方便的开发一些简单的实时交互应用。</p>
+</div>
+<div class="paragraph">
+<p>首先，启用STOMP over WebSocket：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketStompConfig extends AbstractWebSocketMessageBrokerConfigurer {
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws").withSockJS(); <b class="conum">(1)</b>
+    }
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        registry.enableSimpleBroker("/queue", "/topic");  <b class="conum">(2)</b>
+        registry.setApplicationDestinationPrefixes("/app"); <b class="conum">(3)</b>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>注册WebSocket的endpoint，这里同时使用SockJS的通讯协议，当浏览器不支持WebSocket时可以fallback到Ajax/XHR或long polling。</p>
+</li>
+<li>
+<p>Stomp并不真的提供 <code>queue</code> 或 <code>topic</code> ，它使用 <code>SEND</code> 和 <code>SUBSCRIBE</code> 语义操作“destination”，这里的 <code>"/queue", "/topic"</code> 都是destination前缀。参考 <a href="http://stomp.github.io/stomp-specification-1.2.html">Stomp specification</a></p>
+</li>
+<li>
+<p>应用初始化消息的前缀。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>然后我们发送应用的初始化数据：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@SubscribeMapping("/todoes")  <b class="conum">(1)</b>
+public Iterable&lt;Todo&gt; findAll(){
+    return todoRepository.findAll();
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>标记findAll响应Subscribe消息，当客户端Subscribe <code>"/app/todoes"</code> 时，客户端会收到findAll的结果。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>最后在"topic"上发送增量数据实现实时响应</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Around("(execution(* save(..)) || execution(* delete(..))) &amp;&amp; target(repository)") <b class="conum">(1)</b>
+public Object publishChange(ProceedingJoinPoint jp, CrudRepository repository) throws Throwable {
+    logger.info("publishChange " + jp);
+    List original = Lists.newArrayList(repository.findAll()); <b class="conum">(2)</b>
+    Object ret = jp.proceed();
+    List updated = Lists.newArrayList(repository.findAll());  <b class="conum">(3)</b>
+
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode patchNode = JsonDiff.asJson(mapper.valueToTree(original), mapper.valueToTree(updated));
+
+    messaging.convertAndSend("/topic/todoes", patchNode);  <b class="conum">(4)</b>
+    return ret;
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>拦截Repository的save和delete方法</p>
+</li>
+<li>
+<p>获取方法执行前的数据</p>
+</li>
+<li>
+<p>获取方法执行后的数据</p>
+</li>
+<li>
+<p>发送patch数据</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+UpdateAspect无法捕捉到数据的更新操作，因为CrudRepository更新数据的流程是先根据主键调用findOne找到当前Bean，对Bean设值，然后save。显然在save之前缓存已经更新了，所以通过拦截save方法无法获得数据的变化。
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+如果使用表达式 <code>@Around("target(repository)")</code> 是否会导致 <code>findAll()</code> 被切面拦截或递归拦截？
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>详细用法请参考 <code>UpdateAspect</code> 类和前端js脚本。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_tx">5. spring tx</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Spring的声明式事务是Spring中最精彩的部分，它充分利用了Spring的容器、AOP和Servlet同步模型。JdbcTemplate是Spring直接操作jdbc的工具类，我们可以从该类入手观察整个Spring事务时如何工作的。追踪代码，获得大致流程如下：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>TransactionAspectSupport 完成切面拦截，事务从这里开始。</p>
+</li>
+<li>
+<p>根据事务配置，Spring会返回对应的PlatformTransactionManager，例如原生jdbc就是DataSourceTransactionManager。</p>
+</li>
+<li>
+<p>TransactionManager开始工作前利用TransactionSynchronizationManager将所需资源绑定到当前线程。由于Servlet 3.0之前都是同步的，一次请求中的方法都是在同一线程中执行，TransactionSynchronizationManager大大简化了方法调用之间的参数传递。</p>
+</li>
+<li>
+<p>DataSourceUtils调用TransactionSynchronizationManager中绑定的资源获取Connection。</p>
+</li>
+<li>
+<p>在Connection完成操作后，TransactionManager根据执行情况commit或rollback。</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://www.plantuml.com/plantuml/svg/RP2nJiGm38RtFaLq4moyG0UajbaOaD0LnC9YKbylehMZn3q1Jq-J6-e2Kvpy___PSO0etla09ERm784IEF5CJGhef5z2u2W70yaqLT3Ufmdan75McKSW636-qOq5WPwNwF2lV5jexPwcRFqNkNDayj-WKYNKxKDRbnVnKoeMMpNcxjwqjV5quGzyzNBsfF1LFYuWk8xGPcjNcu5R7BsIkghBagtDkwVXYAbqsNHRsH9b8YpKsemesrMHjhUj_9t5pxLQSEUujeyu8IHKb07_OziIMB-oq6vYvRRvJzVL3DpnF7lPmV8sLhcfZLjxqXBKqXxenDhS_W00" alt="RP2nJiGm38RtFaLq4moyG0UajbaOaD0LnC9YKbylehMZn3q1Jq J6 e2Kvpy   PSO0etla09ERm784IEF5CJGhef5z2u2W70yaqLT3Ufmdan75McKSW636 qOq5WPwNwF2lV5jexPwcRFqNkNDayj WKYNKxKDRbnVnKoeMMpNcxjwqjV5quGzyzNBsfF1LFYuWk8xGPcjNcu5R7BsIkghBagtDkwVXYAbqsNHRsH9b8YpKsemesrMHjhUj 9t5pxLQSEUujeyu8IHKb07 OziIMB oq6vYvRRvJzVL3DpnF7lPmV8sLhcfZLjxqXBKqXxenDhS W00">
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_boot">6. spring boot</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>由于Spring整体的配置较多，即使用注解仍有许多配置项，而一些常见项目与Spring的集成配置基本是通用的，于是Spring将这些项目预集成，通过检测classpath中是否有对应的类来开启配置，这就是Spring Boot项目。在 <a href="http://start.spring.io/" class="bare">http://start.spring.io/</a> 可以通过勾选项目特性快速生成自己的项目配置，当然也可以在pom手动加入依赖：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml">&lt;parent&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+    &lt;version&gt;1.3.7.RELEASE&lt;/version&gt;
+    &lt;relativePath/&gt; &lt;!-- lookup parent from repository --&gt;
+&lt;/parent&gt;
+&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-jetty&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;exclusions&gt;
+            &lt;exclusion&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-starter-tomcat&lt;/artifactId&gt;
+            &lt;/exclusion&gt;
+        &lt;/exclusions&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-freemarker&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-data-jpa&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-data-rest&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>spring-boot-starter: 引入Spring core，并实现spring boot的自动配置。</p>
+</li>
+<li>
+<p>spring-boot-starter-web: 启用Spring webmvc，并通过spring-boot-starter-tomcat内嵌tomcat。</p>
+</li>
+<li>
+<p>spring-boot-starter-jetty: 使用内嵌的Jetty。</p>
+</li>
+<li>
+<p>spring-boot-starter-websocket: 跟Jetty,Tomcat,Undertow,WebLogic,WebSphere等常见容器的WebSocket适配器。</p>
+</li>
+<li>
+<p>spring-boot-starter-freemarker: 跟Freemarker的集成。</p>
+</li>
+<li>
+<p>spring-boot-starter-data-jpa: 启用JPA，通过Hibernate实现。</p>
+</li>
+<li>
+<p>spring-boot-starter-data-rest: 启用spring-data-rest-webmvc，实现Data model到rest接口的自动暴露。</p>
+</li>
+<li>
+<p>spring-boot-starter-jdbc: 启用原生jdbc。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>预定义配置自然不能完全满足我们的要求，Spring boot使用 <code>application.properties</code> 作为全局配置文件，默认配置值可以在 <a href="http://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html" class="bare">http://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html</a> 找到。</p>
+</div>
+<div class="paragraph">
+<p>Spring Boot还可以利用maven插件将项目打包成standalone jar文件，boot的Launcher会自动查找项目内含有main方法的class，然后执行。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_code_description">Appendix A: Code Description</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>AppBoot.java</p>
+<div class="paragraph">
+<p>项目入口</p>
+</div>
+</li>
+<li>
+<p>LogAspect.java</p>
+<div class="paragraph">
+<p>日志切面例子，含before advice和around advice，还有针对方法和类的不同pointcut</p>
+</div>
+</li>
+<li>
+<p>UpdateAspect.java</p>
+<div class="paragraph">
+<p>利用切面获取数据更新状态，然后使用WebSocket发送差异数据</p>
+</div>
+</li>
+<li>
+<p>DatabaseConfig.java</p>
+<div class="paragraph">
+<p>数据源配置</p>
+</div>
+</li>
+<li>
+<p>WebSocketStompConfig.java</p>
+<div class="paragraph">
+<p>WebSocket配置</p>
+</div>
+</li>
+<li>
+<p>TodoController.java</p>
+<div class="paragraph">
+<p>Spring webmvc和websocket的Controller例子</p>
+</div>
+</li>
+<li>
+<p>resources/public</p>
+<div class="paragraph">
+<p>Spring boot默认的静态文件目录</p>
+</div>
+</li>
+<li>
+<p>resouces/templates</p>
+<div class="paragraph">
+<p>Spring boot默认的template文件目录，例子用的Freemarker</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>运行方法：
+直接执行AppBoot或 <code>mvn package</code> 后用 <code>java -jar</code> 执行生成的jar包。</p>
+</div>
+<div class="paragraph">
+<p><a href="http://127.0.0.1:8080/" class="bare">http://127.0.0.1:8080/</a> 是个todo list的例子（需要最新版的Chrome或Firefox），可以添加删除内容，如果开多个浏览器，数据会在多个窗口同步。</p>
+</div>
+<div class="paragraph">
+<p><a href="http://127.0.0.1:8080/profile/todoes" class="bare">http://127.0.0.1:8080/profile/todoes</a> 是alps格式的API描述</p>
+</div>
+<div class="paragraph">
+<p><a href="http://127.0.0.1:8080/browser/index.html#/todoes" class="bare">http://127.0.0.1:8080/browser/index.html#/todoes</a> 是data rest接口的UI</p>
+</div>
+</div>
+</div>
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

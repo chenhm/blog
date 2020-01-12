@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             SICP习题解答2.42(八皇后问题)         </h1>
+     
+     <p>注意：该解答应该不是作者期望的，因为没法继续做2.43了。看有空能不能找出作者期望的解。</p>
+<pre><code class="language-scheme">;; EXERCISE 2.42
+(define (filter predicate sequence)
+(cond ((null? sequence) '())
+((predicate (car sequence))
+(cons (car sequence)
+(filter predicate (cdr sequence))))
+(else (filter predicate (cdr sequence)))))
+(define (flatmap proc seq)
+(accumulate append '() (map proc seq)))
+(define (accumulate op initial sequence)
+(if (null? sequence)
+initial
+(op (car sequence)
+(accumulate op initial (cdr sequence)))))
+(define (enumerate-interval low high)
+(if (&gt; low high)
+'()
+(cons low (enumerate-interval (+ low 1) high))))
+
+(define (queens board-size)
+(define (queen-cols k)
+(if (= k 0)
+(list empty-board)
+(filter
+(lambda (positions) (safe? k positions))
+(flatmap
+(lambda (rest-of-queens)
+(map (lambda (new-row)
+(adjoin-position new-row k rest-of-queens))
+(enumerate-interval 1 board-size)))
+(queen-cols (- k 1))))))
+(queen-cols board-size))
+
+(define empty-board ())
+(define (adjoin-position new-row k rest-of-queens) (cons (cons new-row k) rest-of-queens ))
+(define (safe? k positions)
+(define qk (car positions))
+(define ret (map (lambda (w)(if(not (or
+(= (+ (car qk)(cdr qk)) (+ (car w)(cdr w)))
+(= (-(car qk)(cdr qk)) (-(car w)(cdr w)))
+(= (car qk)(car w))
+(= (cdr qk)(cdr w))
+)) 0 1)) (cdr positions)))
+(= (accumulate + 0 ret) 0)) 
+
+(queens 8)
+</code></pre>
+<p>运行后产生92组解。</p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

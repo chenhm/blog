@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             搭建Cisco IPSec VPN服务         </h1>
+     
+     <p>上一篇介绍了pptp协议的vpn搭建，本篇主要介绍Cisco IPSec，这也是iOS和android上原生支持的VPN协议。IPSec可以提供加密的安全ip隧道，在Linux上对应的实现主要有strongSwan、Openswan和racoon三种。strongSwan已经停止维护，现在已经很少用了。下面以racoon为例介绍IPSec的配置使用。</p>
+<ol>
+<li>安装racoon</li>
+</ol>
+<hr />
+<p>下面的apt-get安装和编译安装选择一种即可，推荐apt-get。</p>
+<h3 id="使用apt-get安装racoon" class="md">使用apt-get安装racoon</h3>
+<p>为了使用最新版的racoon，我们需要给debian加上testing源。testing版相对于稳定版测试没那么充分，但一般使用是没有问题的，软件往往新很多。</p>
+<h4 id="编辑源列表" class="md">编辑源列表</h4>
+<pre><code>vi /etc/apt/sources.list
+</code></pre>
+<p>后面添加testing源</p>
+<pre><code>deb http://ftp.debian.org/debian testing main non-free contrib
+deb http://ftp.debian.org/debian testing-proposed-updates main non-free contrib
+deb http://security.debian.org/ testing/updates main non-free contrib
+
+deb-src http://ftp.debian.org/debian testing main non-free contrib
+deb-src http://ftp.debian.org/debian testing-proposed-updates main non-free contrib
+deb-src http://security.debian.org/ testing/updates main non-free contrib
+</code></pre>
+<h4 id="更新源列表" class="md">更新源列表</h4>
+<pre><code>apt-get update
+apt-get upgrade
+</code></pre>
+<h4 id="install-racoon" class="md">install racoon</h4>
+<pre><code>apt-get install racoon
+</code></pre>
+<h3 id="编译安装racoon" class="md">编译安装racoon</h3>
+<p>去<a href="http://ipsec-tools.sourceforge.net/">http://ipsec-tools.sourceforge.net/</a>下载<a href="http://sourceforge.net/projects/ipsec-tools/files/latest/download?source=files">最新版本的racoon源码</a></p>
+<pre><code>wget http://downloads.sourceforge.net/project/ipsec-tools/ipsec-tools/0.8.1/ipsec-tools-0.8.1.tar.bz2
+tar xvf ipsec-tools-0.8.1.tar.bz2
+cd ipsec-tools-0.8.1
+./configure --enable-security-context=no --with-kernel-headers=/usr/include
+make &amp;&amp; make install
+</code></pre>
+<p>由于racoon依赖很多包，<code>configure</code>很可能会遇到问题，我参考了<a href="http://notes.benv.junerules.com/ipsec-tools-and-slackware64/">http://notes.benv.junerules.com/ipsec-tools-and-slackware64/</a></p>
+<ol>
+<li>配置racoon</li>
+</ol>
+<hr />
+<p>首先使用下面的配置替换<code>/etc/racoon/racoon.conf</code></p>
+<pre><code>log info;
+path include &quot;/etc/racoon&quot;;
+path pre_shared_key &quot;/etc/racoon/psk.txt&quot;;
+
+listen {
+	isakmp 1.2.3.4 [500]; #监听的端口和地址
+	isakmp_natt 1.2.3.4 [4500]; #监听的端口和地址
+}
+
+remote anonymous {
+    exchange_mode main,aggressive;
+    doi ipsec_doi;
+    nat_traversal on;
+    proposal_check obey;
+    generate_policy unique;
+    ike_frag on;
+    passive on;
+    dpd_delay = 30;
+    dpd_retry = 30;
+    dpd_maxfail = 800;
+    mode_cfg = on;
+    proposal {
+        encryption_algorithm aes;
+        hash_algorithm sha1;
+        authentication_method xauth_psk_server;
+        dh_group 2;
+        lifetime time 12 hour;
+    }
+}
+
+timer{
+    natt_keepalive 20 sec;
+}
+
+sainfo anonymous {
+    lifetime time 12 hour;
+    encryption_algorithm aes,3des,des;
+    authentication_algorithm hmac_sha1,hmac_md5;
+    compression_algorithm deflate;
+}
+
+mode_cfg {
+    dns4 8.8.8.8,8.8.4.4;
+    save_passwd on;
+    network4 192.168.33.254; #客户端IP
+    netmask4 255.255.255.0;
+    pool_size 250;
+    banner &quot;/etc/racoon/motd&quot;;
+    auth_source pam;
+    conf_source local;
+    pfs_group 2;
+    default_domain &quot;local&quot;;
+}
+</code></pre>
+<p>修改 <code>/etc/racoon/psk.txt</code></p>
+<ul>
+<li>secret_word  #前面是Group Name,后面是Secret,对应客户端里面的IPSec识别符和IPSec预共享密钥</li>
+</ul>
+<p>这样IPSec就配置完成了，登陆的用户即是系统用户，可以使用useradd添加。</p>
+<p>客户端在iOS中使用Cisco IPSec配置，android中使用IPSec Xauth PSK配置。</p>
+<h3 id="参考" class="md">参考：</h3>
+<p><a href="http://blog.ti.io/2011/10/cisco-ipsec-vpn-howto/">http://blog.ti.io/2011/10/cisco-ipsec-vpn-howto/</a><br />
+<a href="http://blog.wellsgz.info/?p=1964">http://blog.wellsgz.info/?p=1964</a><br />
+<a href="https://w3.owind.com/pub/linux-cisco-vpn-server-for-dummies/">https://w3.owind.com/pub/linux-cisco-vpn-server-for-dummies/</a></p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

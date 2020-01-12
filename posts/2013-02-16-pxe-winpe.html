@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             通过PXE引导WinPE         </h1>
+     
+     <p>过年回家，我这个在一众亲朋好友眼中的电脑高手总会接到很多修电脑的任务。这一次是台02年的dell笔记本要求重装系统，原系统已被破坏，无法开机。拿到手上顿时觉得坑爹，光驱坏了无法使用，不支持USB引导，唯一能做的引导方式就是PXE了，不管怎样，活还是要干的。</p>
+<ol>
+<li>
+<p>下载 tftpd32 <a href="http://tftpd32.jounin.net/tftpd32_download.html">http://tftpd32.jounin.net/tftpd32_download.html</a> 缺省安装即可。我是安装到目录 f:\tftpd32</p>
+</li>
+<li>
+<p>下载 grub4dos  <a href="http://download.gna.org/grub4dos/">http://download.gna.org/grub4dos/</a> 解压，只需要里面的两个文件：grldr 和 menu.lst 把这两个文件复制到 tftpd32 安装目录 f:\tftpd32</p>
+</li>
+<li>
+<p>用文本编辑器（例如 记事本，editplus）打开 menu.lst 文件，注意看里面的启动 iso 文件的格式，把这部分的 iso 文件名改为你的 PE 的ISO 文件名即可。其他的内容可以删除。 这是我的 menu.lst</p>
+<pre><code>timeout 30  
+default /default  
+
+title find and boot WinPE.ISO    
+map /WinPE.ISO (0xff) || map --mem(pd) /WinPE.ISO (0xff)  
+map --hook  
+root(0xff)  
+chainloader (0xff)  
+
+title reboot  
+reboot  
+</code></pre>
+<p>如果机器内存较小，这里的WinPE.ISO最好选用精简版的。我的这台就是因为只有256M内存，尝试了n个版本之后才能正常启动</p>
+</li>
+<li>
+<p>下载 PE 的 ISO, 放到 f:\tftpd32 目录</p>
+</li>
+<li>
+<p>tftpd32 的设置，就是指定用 grldr 来启动，见下图。 <img src="images/pxe.png" alt="" /></p>
+</li>
+</ol>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

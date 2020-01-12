@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+    <meta name="renderer" content="webkit">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             使用dropbear做ssh转发服务         </h1>
+     
+     <p>dropbear是个轻量级sshd服务器，比openssh占用的内存小得多，如果你需要并发开很多ssh连接，dropbear是个不错的选择。不过dropbear在forward大量连接的时候貌似没有openssh稳定。下面以配置一个转发用户为例说明如何使用dropbear。</p>
+<ol>
+<li>
+<p>下载安装dropbear</p>
+<pre><code>wget https://matt.ucc.asn.au/dropbear/dropbear-2013.56.tar.bz2
+tar xvf dropbear-2013.56.tar.bz2
+cd dropbear-2013.56
+./configure
+make
+make install
+</code></pre>
+<p>如果需要修改默认参数，例如默认监听的端口、默认的密钥文件、是否启用X11 Forwarding等等，可以在<code>make</code>之前修改<code>options.h</code>文件。如果<code>make</code>的时候提示缺少zlib，可以用以下命令安装</p>
+<pre><code>apt-get install ^zlib* ＃debian
+yum install zlib* #redhat
+</code></pre>
+</li>
+<li>
+<p>配置dropbear<br />
+sshd服务器需要先配置公钥才能使用，可以只配置dss或rsa中的一种，这样跟客户端协商的时候只使用一种加密方式：</p>
+<pre><code>mkdir /etc/dropbear
+/usr/local/bin/dropbearkey -t dss -f /etc/dropbear/dropbear_dss_host_key
+/usr/local/bin/dropbearkey -t rsa -s 4096 -f /etc/dropbear/dropbear_rsa_host_key
+</code></pre>
+<p>配置好之后就可以直接启动了</p>
+<pre><code>/usr/local/sbin/dropbear -p 222  ＃在222端口监听
+</code></pre>
+<p>如果启动有异常，可以用<code>/usr/local/sbin/dropbear -E -F</code>检查。</p>
+</li>
+<li>
+<p>配置一个专门用于转发的用户</p>
+<pre><code>useradd fwd -s /usr/sbin/nologin  ＃debian
+useradd fwd -s /sbin/nologin  #redhat
+passwd fwd   #设置用户密码
+</code></pre>
+<p>检查<code>/etc/shells</code>中有没有<code>/usr/sbin/nologin</code>,如果没有需要加上：</p>
+<pre><code>cat /etc/shells|grep nologin  #检查输出是否有nologin
+echo &quot;/usr/sbin/nologin&quot; &gt;&gt; /etc/shells ＃追加nologin到shells
+</code></pre>
+</li>
+</ol>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>
