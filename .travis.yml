@@ -2,23 +2,27 @@ branches:
   only:
   - master
 
-language: minimal
+language: java
 
 sudo: false
 
 before_script:
   - git config --global user.name "chenhm"
   - git config --global user.email "chenhm@gmail.com"
-  - git clone --branch list https://github.com/${GH_REF}.git dist
+  - git clone --branch gh-pages https://github.com/${GH_REF}.git dist
 
 script:
-  - curl -vL "https://api.github.com/repos/${GH_REF}/contents/posts?ref=master&client_id=${client_id}&client_secret=${client_secret}'" -o dist/list.json
+  - curl -vOL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o java-static-blog-0.0.1.jar
+  - java -jar java-static-blog-0.0.1.jar
 
 after_success:
   - cd dist
+  - echo "chenhm.com" > CNAME
+  - echo "<html><meta http-equiv="refresh" content="0;url=https://chenhm.com/list/1"></html>" > index.html
+  - cp index.html 404.html
   - git add --all .
-  - git commit --message "Automatically update list.json from travis-ci"
-  - git push --quiet "https://${GH_TOKEN}@github.com/${GH_REF}.git" list:list
+  - git commit --message "Automatically update from travis-ci"
+  - git push --quiet "https://${GH_TOKEN}@github.com/${GH_REF}.git" gh-pages:gh-pages
 
 # Note: you should set Environment Variables here or 'Settings' on travis-ci.org
 env:
