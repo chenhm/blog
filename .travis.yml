@@ -22,6 +22,7 @@ after_success:
   - echo "chenhm.com" > CNAME
   - echo "<html><meta http-equiv="refresh" content="0;url=https://chenhm.com/list/1"></html>" > index.html
   - cp index.html 404.html
+  - git checkout -b gh-pages
   - git add --all .
   - git commit --message "Automatically update from travis-ci"
   - git show-ref
