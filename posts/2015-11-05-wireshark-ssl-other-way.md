@@ -17,7 +17,7 @@ Windows在系统属性->高级->环境变量中设置。
 
 2. 设置Wireshark  
 在Edit->Preferences->Protocols->SSL->(Pre)-Master-Secret log filename中指定刚才的premaster.txt文件。
-![(Pre)-Master-Secret](/images/premaster.png)
+![(Pre)-Master-Secret](images/premaster.png)
 
 3. 正常打开Chrome或Firefox，访问HTTPS网站，你会看到premaster.txt里面记录了浏览器使用的临时密码，有了这个Wireshark自然可以解密SSL流量了。
 
