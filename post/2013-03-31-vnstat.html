@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             通过vnstat分析网卡流量         </h1>
+     
+     <p>vnstat是linux下常用的流量监控工具，使用上非常简单。</p>
+<ol>
+<li>安装<br />
+如果是Debian/Ubuntu直接使用apt-get安装即可
+<pre><code>sudo apt-get install vnstat
+</code></pre>
+</li>
+</ol>
+<p>RedHat / Fedora / CentOS 可以使用yum</p>
+<pre><code>	sudo yum install vnstat
+</code></pre>
+<p>如果想自己动手编译也很简单，在<a href="http://humdi.net/vnstat/">http://humdi.net/vnstat/</a>下载源码包，<code>make</code>即可。</p>
+<pre><code>	wget http://humdi.net/vnstat/vnstat-1.11.tar.gz
+	tar xvf vnstat-1.11.tar.gz
+	cd vnstat-1.11
+	make
+	make install
+</code></pre>
+<ol>
+<li>配置crontab自动调度<br />
+编辑<code>/etc/cron.d/vnstat</code>文件，如果没有则新建一个，内容如下：
+<pre><code>0-55/5 * * * *   root   vnstat -u -i eth0
+</code></pre>
+</li>
+</ol>
+<p>crontab会每5分钟调度一次更新vnstat的数据库。</p>
+<ol>
+<li>执行<code>vnstat</code>即可查看eth0网络接口的数据统计，使用<code>vnstat -d</code>可以按天查看，使用<code>vnstat -m</code>可以按月查看。</li>
+</ol>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

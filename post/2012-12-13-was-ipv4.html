@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             修改was强制使用IPv4监听协议         </h1>
+     
+     <p>今天在一台新Linux上安装websphere 7.0，管理控制台无法正常启动。 检查网络状态</p>
+<pre><code>netstat -ntl  
+tcp6       0      0 :::9060                 :::*                    LISTEN  
+</code></pre>
+<p>发现was监听在IPv6上，而不是通常的IPv4。初步怀疑由于操作系统开启了IPv6，导致java默认监听在IPv6上。google一下很快找到两篇文章：</p>
+<p>Networking IPv6 User Guide for JDK/JRE 5.0 <a href="http://docs.oracle.com/javase/6/docs/technotes/guides/net/ipv6_guide/index.html#ipv6-networking">http://docs.oracle.com/javase/6/docs/technotes/guides/net/ipv6_guide/index.html#ipv6-networking</a></p>
+<p>Networking Properties <a href="http://docs.oracle.com/javase/1.4.2/docs/guide/net/properties.html">http://docs.oracle.com/javase/1.4.2/docs/guide/net/properties.html</a></p>
+<p>看来只要设置 <code>-Djava.net.preferIPv4Stack=true</code> 参数即可。</p>
+<p>但这时遇到了困难，不知道什么原因，设置setupCmdLine.sh竟然无效，各种find + grep以及google无果。最后用了终极大法，删除 /opt/IBM/WebSphere/AppServer/java/bin/java 文件,新建了一个名为java的shell</p>
+<pre><code>#!/bin/sh  
+exec /opt/IBM/WebSphere/AppServer/java/jre/bin/java -Djava.net.preferIPv4Stack=true $@  
+</code></pre>
+<p>问题终于解决，很奇怪was为何不提供个类似tomcat JAVA_OPTS的环境变量，真是太折腾人了。另外就算只监听IPv6应该也没什么问题的，不知道was有什么bug导致 dmgr 无法启动。</p>
+<p>后记：真是孤陋寡闻，其实java有个环境变量可以设置该特性的</p>
+<pre><code>_JAVA_OPTIONS=-Djava.net.preferIPv4Stack=true
+</code></pre>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

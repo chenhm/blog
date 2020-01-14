@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             纸质针孔（pinhole）相机         </h1>
+     
+     <p>玩lomo的人肯定都知道Holga针孔相机，可是400块一台的价格完全是在抢钱，其实自己DIY一台成本不到10元，当然还需要花上你一天的时间。在开始做之前先做一些准备：</p>
+<ol>
+<li>
+<p>用<a href="http://www.google.com.hk/imghp">google图片</a>和<a href="http://www.flickr.com/">flickr</a>搜索 &quot;<em>pinhole camera</em>&quot;，这里有网友制作的各式各样的针孔相机，制作零部件的时候可以参考。这里 也有一些设计图纸可以参考尺寸。</p>
+</li>
+<li>
+<p>去 <a href="http://www.pinhole.cz/en/pinholedesigner/">http://www.pinhole.cz/en/pinholedesigner/</a> 下载<em>pinhole designer</em>软件，帮你计算合适的孔径以及曝光参数。</p>
+</li>
+<li>
+<p>准备2-3张A4大小的黑卡纸（400g即可），胶水、刻刀、钢尺、3M黑色胶带、砂纸、可乐罐、针、回形针。</p>
+</li>
+</ol>
+<p>我是一边做一边设计的，需要什么就在卡纸上画个图然后切下来用。首先做的是最简单的成像框，框的大小可以自己设定，标准的是36x24(mm)，但我想要卡孔成像，所以做的是36x35(mm)。在底框上再套个小框，用胶带绑好，试试胶卷滑动是否正常。 <img src="images/pinhole-1.jpg" alt="" /> <img src="images/pinhole-2.jpg" alt="" /></p>
+<p>然后我们做相机外壳和背板，这个稍微麻烦些，最好先用铅笔在黑卡上画好设计图。 <img src="images/pinhole-3.jpg" alt="" /></p>
+<p>外壳裁下来之后先放到一边，我们来做一些小配件。</p>
+<p>上片卷轴我是拿一节铅笔用小螺丝刀在上面转了2个小洞，穿上回形针制成的。而回片转轴就直接是一根回形针用胶布缠了一下。 <img src="images/pinhole-4.jpg" alt="" /> <img src="images/pinhole-5.jpg" alt="" /></p>
+<p>接下来是我们最重要的小孔片制作了。剪一小块易拉罐上的铝皮，将它锤平，垫在纸上用圆珠笔在中心用力戳一下。再在砂纸上打磨铝皮反面的小突起，注意不要磨穿，然后用针轻轻扎一下，一个又小又圆的洞就出现了。我们将这块铝皮固定在卡纸上当镜头使用。 <img src="images/pinhole-6.jpg" alt="" /></p>
+<p>在相机正面用纸条做好快门，固定好刚刚制作的镜头、上片卷轴和回片卷轴。再将成像框固定好。 <img src="images/pinhole-7.jpg" alt="" /> <img src="images/pinhole-8.jpg" alt="" /> <img src="images/pinhole-9.jpg" alt="" /></p>
+<p>装好胶卷，合上后盖就可以拍摄了。 <img src="images/pinhole-10.jpg" alt="" /></p>
+<p>等等，没有取景器怎么拍呢。别急，我们再来做一个取景器。一样的做一个小方盒子，一头直接用针在纸上扎个小洞，另一头挖个框，贴上透明薄纸（类似我们练字的那种，越薄越好，当然你有合适的磨砂玻璃更好）。这样已经可以成像取景了，但在白天这个像非常微弱，基本看不见。我们再用卡纸做个套子遮光即可。从取景器里能看到纸的纹理，不过没有太大影响了。 <img src="images/pinhole-11.jpg" alt="" /></p>
+<p>DIY可换镜头针孔相机就这样诞生了。我已经急不可待的要去拍照了。 <img src="images/pinhole-12.jpg" alt="" /></p>
+<p>btw：对于lomo摄影，相机的所有缺陷都可以认为是它的功能 ，享受单纯的摄影乐趣就好。</p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

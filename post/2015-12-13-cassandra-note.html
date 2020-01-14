@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+     <h1>Cassandra Note</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_基本概念">1. 基本概念</a>
+<ul class="sectlevel3">
+<li><a href="#_node">1.1. Node</a></li>
+<li><a href="#_data_center">1.2. Data center</a></li>
+<li><a href="#_cluster">1.3. Cluster</a></li>
+<li><a href="#_keyspace">1.4. Keyspace</a></li>
+<li><a href="#_table">1.5. Table</a></li>
+<li><a href="#_commit_log">1.6. Commit log</a></li>
+<li><a href="#_memtable">1.7. Memtable</a></li>
+<li><a href="#_sstable">1.8. SSTable</a></li>
+<li><a href="#_一致性consistency">1.9. 一致性(CONSISTENCY)</a></li>
+<li><a href="#_读请求">1.10. 读请求</a></li>
+<li><a href="#_写请求">1.11. 写请求</a></li>
+</ul>
+</li>
+<li><a href="#_代码样例">2. 代码样例</a></li>
+<li><a href="#_cql">3. CQL</a>
+<ul class="sectlevel3">
+<li><a href="#_使用系统时间">3.1. 使用系统时间</a></li>
+<li><a href="#_轻量级事务">3.2. 轻量级事务</a></li>
+<li><a href="#_指定column的过期时间">3.3. 指定column的过期时间</a></li>
+<li><a href="#_查询过期时间">3.4. 查询过期时间</a></li>
+<li><a href="#_更新过期时间">3.5. 更新过期时间</a></li>
+<li><a href="#_查询写入时间">3.6. 查询写入时间</a></li>
+<li><a href="#_添加columns">3.7. 添加columns</a></li>
+<li><a href="#_更改column数据类型">3.8. 更改column数据类型</a></li>
+</ul>
+</li>
+<li><a href="#_tips">4. Tips</a>
+<ul class="sectlevel3">
+<li><a href="#_关于row_cache">4.1. 关于row cache</a></li>
+<li><a href="#_批处理boundstatement">4.2. 批处理BoundStatement</a></li>
+<li><a href="#_数据估算">4.3. 数据估算</a></li>
+<li><a href="#_删除所有数据">4.4. 删除所有数据</a></li>
+</ul>
+</li>
+<li><a href="#_references">5. References:</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Chen Hongming &lt;<a href="mailto:chenhm@gmail.com">chenhm@gmail.com</a>&gt;</p>
+</div>
+<div class="paragraph">
+<p>本文的 <a href="http://chenhm.github.io/slides/cassandra/cassandra.html">HTML版</a> 或 <a href="http://chenhm.github.io/slides/cassandra/cassandra.pdf">pdf版</a></p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_基本概念">1. 基本概念</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Cassandra(社区也称为C*)在设计的时候就考虑了多数据中心多副本的情况，这使得它在跨数据中心的数据复制上相比其他数据库更具优势，一个典型的Cassandra集群含有多个数据中心，每个数据中心又由多个对等的节点组成。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/c-cluster.png" alt="c cluster"/>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_node">1.1. Node</h4>
+<div class="paragraph">
+<p>提供数据存储服务的基本组件。所有节点都是完全对等的，没有中心协调者，每个节点都知道数据在整个集群是如何分片的，都可以充当协调者。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_data_center">1.2. Data center</h4>
+<div class="paragraph">
+<p>由一组node组成的虚拟集合，可以设置数据在不同数据中心上的复制策略，同一数据中心内的node不应跨越物理上的数据中心。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_cluster">1.3. Cluster</h4>
+<div class="paragraph">
+<p>集群可以包含多个数据中心。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_keyspace">1.4. Keyspace</h4>
+<div class="paragraph">
+<p>Keyspace是Table的外层容器，主要是为了定义一组表在集群内的复制策略。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_table">1.5. Table</h4>
+<div class="paragraph">
+<p>在早期 <a href="http://wiki.apache.org/cassandra/API10">Thrift API</a> 时代Table叫Column Family，所以在一些文档会看到CF的简称，到 <a href="http://cassandra.apache.org/doc/cql3/CQL.html">CQL API</a> 时代就改名叫Table了。C*的Table参考了 <a href="http://research.google.com/archive/bigtable.html">Google Bigtable</a> 的设计</p>
+</div>
+<div class="openblock ditaa">
+<div class="content">
+<div class="literalblock">
+<div class="content">
+<pre>                 1 -----------&gt; 2 Billion
++---------+-------------+-----+-------------+
+|         | Column Name | ... | Column Name |
+|         +-------------+-----+-------------+
+|         | ColumnValue |     | ColumnValue |
++ Row Key +-------------+-----+-------------+
+|         | Timestamp   |     | Timestamp   |
+|         +-------------+-----+-------------+
+|         |  TTL        |     |  TTL        |
++---------+-------------+-----+-------------+
+|                    ...                    |
++-------------------------------------------+</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>C*使用Timestamp来解决记录冲突，而TTL过期的记录会自动从C*删除，通常我们不用管这两个属性，可以简单的将Table理解为Map，其中RowKey是主键。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Map&lt;RowKey, SortedMap&lt;ColumnKey, ColumnValue&gt;&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>如果是复合主键, C*的存储方式会有点特别，假设我们有下面这个表和数据</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-sql" data-lang="sql">CREATE TABLE Note (
+    key int,
+    user text,
+    name text,
+    PRIMARY KEY (key, user)
+);
+insert into note(key,user,name) values(1,'user1','name1');
+insert into note(key,user,name) values(1,'user2','name2');</code></pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre> key | user  | name
+-----+-------+-------
+   1 | user1 | name1
+   1 | user2 | name2</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>通过`cassandra-cli` list命令查看会发现复合主键的第一个建仍然是RowKey，其余的部分则以column的形式被存储了。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>./cassandra-cli
+list note;
+-------------------
+RowKey: 1
+=&gt; (name=user1:, value=, timestamp=1449473821587616)
+=&gt; (name=user1:name, value=6e616d6531, timestamp=1449473821587616)
+=&gt; (name=user2:, value=, timestamp=1449473822481729)
+=&gt; (name=user2:name, value=6e616d6532, timestamp=1449473822481729)</pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://www.plantuml.com/plantuml/svg/JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a_NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo-s9vxUhAF3QycYok8K-ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa-sVRDTSrpLyMPNXrNJigVpw0000" alt="JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo s9vxUhAF3QycYok8K ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa sVRDTSrpLyMPNXrNJigVpw0000"/>
+</div>
+</div>
+<div class="paragraph">
+<p>数据在C*内做数据分片的时候只能基于RowKey进行，所以复合键中的第一个键也被称为“Partition Key”。</p>
+</div>
+<div class="paragraph">
+<p>显然我们查询的时候只能按主键定义的顺序查找记录：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-sql" data-lang="sql">SELECT * FROM note WHERE key = 1;
+SELECT * FROM note WHERE key = 1 AND user = 'user1';
+SELECT * FROM note WHERE user = 'user1'; --非法查询</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>同样在数据结构上也可以简单理解为</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Map&lt;RowKey, SortedMap&lt;PrimaryKey2, SortedMap&lt;ColumnKey, ColumnValue&gt;&gt;&gt;</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_commit_log">1.6. Commit log</h4>
+<div class="paragraph">
+<p>所有数据会先写到commit log并持久化，之后会被刷新到SSTable，跟RDBMS的redo log是一样的。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_memtable">1.7. Memtable</h4>
+<div class="paragraph">
+<p>数据在写到SSTable之前先缓存在Memtable，达到一定数据量后再一次性写到SSTable，可以有效提高写性能。Memtable本质上就是`ConcurrentSkipListMap`.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_sstable">1.8. SSTable</h4>
+<div class="paragraph">
+<p>SSTable(sorted string table)上的数据是不可变的，通过追加数据来实现数据修改和删除，这也导致了C*的写性能优秀而读性能不是很好。每个Table会有一个或多个SSTable，每个SSTable都包括三个子文件 bloomfilter文件，index文件和数据文件。bloomfilter可以高效标记某个key是否存在于这份sstable文件中; index文件记录key在对应数据文件中的位置。C*还会根据规则合并多个SSTable文件。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_一致性consistency">1.9. 一致性(CONSISTENCY)</h4>
+<div class="paragraph">
+<p>分布式系统绕不开CAP定理，即CAP不可同时满足。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Consistency(一致性), 数据一致更新，所有数据变动都是同步的</p>
+</li>
+<li>
+<p>Availability(可用性), 好的响应性能</p>
+</li>
+<li>
+<p>Partition tolerance(分区容错性), 允许节点之间丢失消息</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>显然P是必须的，否则一个节点故障就导致集群不可用，分布式系统意义就变小了，于是我们只能在AP和CP中选择。C*的一个优势就是可以通过设置ConsistencyLevel实现CP或AP的切换。</p>
+</div>
+<div class="paragraph">
+<p>为了保证P，数据必须有replication，通常我们设置replication factors为3，即一份数据存3份。于是我们存取数据的策略有以下几种：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>每次写都写3份(<code>ConsistencyLevel.ALL</code>)，无疑系统肯定是一致的，这个时候从任何一个节点读取都可以获得最新的数据(<code>ConsistencyLevel.ONE</code>)</p>
+</li>
+<li>
+<p>每次只写1份(<code>ConsistencyLevel.ONE</code>)，系统出现了不一致，但只要读取了所有节点(<code>ConsistencyLevel.ALL</code>)，我们还是可以获得最新的数据。注意，要判断哪个节点上的数据是最新的，显然依赖时钟同步，所以C*各个节点必须配置ntp同步，但即使这样也无法精确同步时钟，所以C*在理论上无法保证完美的一致性。不过业务上很少会发生在非常小的时间内（同一机房一般小于1ms）多个客户端从不同节点更新了同一条记录的情况，所以从业务上来看一致性还是有保证的。关于记录选择参考 <a href="http://wiki.apache.org/cassandra/FAQ#clocktie">What happens if two updates are made with the same timestamp?</a></p>
+<div class="paragraph">
+<p>除了时钟同步，我们还可以通过每次都写同一个node的方法保证一致性，这样集群内记录的数据时间就以这个node为准了。对应`LoadBalancingPolicy`策略`new TokenAwarePolicy(new DCAwareRoundRobinPolicy(), false) //一个数据中心内使用同一个node`或`new TokenAwarePolicy(new RoundRobinPolicy(), false) //一个集群内使用同一个node`</p>
+</div>
+</li>
+<li>
+<p>上面第一种情况对于读的可用性很高，但对于写的可用性很低，第二种情况正好相反，如果我们每次写2份，读2份，那么既保证了一致性，同时读写也都有一定的可用性。这也是C*默认提供的一致性`ConsistencyLevel.QUORUM`, quorum定义为`quorum = (sum_of_replication_factors / 2) + 1`。这也是我们常说的 W + R &gt; N 即可保证一致性。</p>
+</li>
+<li>
+<p>牺牲强一致性，读写都为1，获得最好的可用性，由C*通过算法在一段时间后实现最终一致性。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>关于C*的隔离级请参考 <a href="http://docs.datastax.com/en/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html" class="bare">http://docs.datastax.com/en/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html</a></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_读请求">1.10. 读请求</h4>
+<div class="imageblock">
+<div class="content">
+<img src="images/c-read.png" alt="c read"/>
+</div>
+</div>
+<div class="paragraph">
+<p>上图显示了12个节点，复制因子为3，一致性级别为QUORUM的读情况，其中node 10是协调者。协调者会对比R1和R3返回的数据，将最新的数据返回给client。如果发现了数据不一致，后台进程还会尝试修复。可以通过表属性`read_repair_chance`设定读修复的比率，但Cassandra 2.0.9及以后的版本不需要读修复。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_写请求">1.11. 写请求</h4>
+<div class="imageblock">
+<div class="content">
+<img src="images/c-write.png" alt="c write"/>
+</div>
+</div>
+<div class="paragraph">
+<p>上图显示了两个数据中心DC1和DC2，复制因子在两个数据中心都是3。当需要写数据的时候，协调者将写请求发到所有的复制节点，但跨数据中心的节点只发送一份，数据中心内部再做同步。写一致性级别为ONE，所以只需要有一个节点R3返回了请求，协调者就可以将数据返回给Client了。</p>
+</div>
+<div class="paragraph">
+<p>查看数据如何在各个节点间同步，可以在CQL中启用trace或通过编码实现。参考 <a href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing</a> 和 <a href="https://docs.datastax.com/en/developer/java-driver/2.0/java-driver/tracing_t.html">Enabling tracing</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_代码样例">2. 代码样例</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>以下代码实现了从一张表读取数据然后用多线程并行插入另一张表的过程，对C*的读写操作可以参考此代码。</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
+
+final Cluster cluster = Cluster.builder()
+        .addContactPoints("10.175.189.66", "10.175.189.67")
+        .withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(), false)) <b class="conum">(1)</b>
+        .withQueryOptions(new QueryOptions()
+            .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)) <b class="conum">(2)</b>
+        .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
+        // .withRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE) <b class="conum">(3)</b>
+        .withProtocolVersion(ProtocolVersion.NEWEST_SUPPORTED)
+        .build();
+final Session session = cluster.connect(); <b class="conum">(4)</b>
+
+//通过CQL构建PreparedStatement
+//final PreparedStatement ps = session
+//        .prepare("INSERT INTO facade.service_profile(identity, serviceid, createtime, extensions, refencetid, status) values(?,?,?,?,?,?);")
+//        .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+
+TableMetadata metaData = cluster.getMetadata().getKeyspace("facade").getTable("service_profile");
+final PreparedStatement ps = session.prepare(insertInto(metaData) <b class="conum">(5)</b>
+                .value("identity", bindMarker())
+                .value("serviceid", bindMarker())
+                .value("createtime", bindMarker())
+                .value("extensions", bindMarker())
+                .value("refencetid", bindMarker())
+                .value("status", bindMarker()))
+        .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM); <b class="conum">(6)</b>
+
+Statement statement = select().all()
+        .from("iam", "service_profile").limit(100000)
+        .setConsistencyLevel(ConsistencyLevel.ONE);  <b class="conum">(7)</b>
+ResultSet results = session.execute(statement);
+final long startTime = System.nanoTime();
+System.err.println("start.");
+final List&lt;Row&gt; res = results.all();
+final long readTime = System.nanoTime();
+System.err.println("Read Time:"+ (readTime - startTime)/(1000*1000) +"ms");
+
+final AtomicInteger inProcess = new AtomicInteger();
+final int poolSize = 4;
+final int subSize = res.size() / poolSize;
+ExecutorService executor = Executors.newFixedThreadPool(poolSize);
+
+for (int i = 0; i &lt; poolSize;i++) {
+    final int num = i;
+    executor.submit(new Runnable() {
+        @Override
+        public void run() {
+            inProcess.incrementAndGet();
+            List&lt;Row&gt; subList = res.subList(num * subSize, subSize * (num + 1));
+            System.out.println(num + ":" + subList.size());
+
+            for (Row row : subList) {
+                session.executeAsync(ps.bind(row.getString(0), row.getString(1),
+                                row.getLong(2), row.getObject(3),
+                                row.getString(4), row.getString(5)));
+            }
+
+            if (inProcess.decrementAndGet() == 0) {
+                session.close();  <b class="conum">(8)</b>
+                long end = System.nanoTime();
+                System.err.println("Write Time:" + (end - readTime)/(1000*1000) +"ms");
+                cluster.close();
+            }
+        }
+    });
+}
+executor.shutdown();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>TokenAwarePolicy会将同一个key的操作指向同一台机，避免集群时钟不同步的一致性问题，注意shuffleReplicas要设成false</p>
+</li>
+<li>
+<p>设定默认的读一致性级别</p>
+</li>
+<li>
+<p>DowngradingConsistencyRetryPolicy允许默认的一致性级别失败后，用更低的一致性级别重试，比如在replication factors为3的环境设置了QUORUM，那么默认会尝试从2个节点读取数据，如果失败了，会再次用`ConsistencyLevel.ONE`尝试，在提高可用性的同时也可能导致出现数据不一致，请小心使用。</p>
+</li>
+<li>
+<p>Session管理了到Cluster多个接入点的网络连接，并且是线程安全的，一个应用有一个Session即可</p>
+</li>
+<li>
+<p>设置TableMetadata以便TokenAwarePolicy生效</p>
+</li>
+<li>
+<p>设定Statement上的写一致性级别</p>
+</li>
+<li>
+<p>设定Statement的读一致性级别，会覆盖Cluster的设置</p>
+</li>
+<li>
+<p>需要小心Session只能关闭一次</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>通过CQL使用Batch</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">String cql =  "BEGIN BATCH "
+       cql += "INSERT INTO test.prepared (id, col_1) VALUES (?,?); ";
+       cql += "INSERT INTO test.prepared (id, col_1) VALUES (?,?); ";
+       cql += "APPLY BATCH; "
+
+DatastaxConnection.getInstance();
+PreparedStatement prepStatement = DatastaxConnection.getSession().prepare(cql);
+prepStatement.setConsistencyLevel(ConsistencyLevel.ONE);
+
+// this is where you need to be careful
+// bind expects a comma separated list of values for all the params (?) above
+// so for the above batch we need to supply 4 params:
+BoundStatement query = prepStatement.bind(userId, "col1_val", userId_2, "col1_val_2");
+
+DatastaxConnection.getSession().execute(query);</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_cql">3. CQL</h2>
+<div class="sectionbody">
+<div class="sect3">
+<h4 id="_使用系统时间">3.1. 使用系统时间</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-sql" data-lang="sql">INSERT INTO TEST (ID, NAME, VALUE, LAST_MODIFIED_DATE) VALUES ('2', 'elephant',  'SOME_VALUE', dateof(now()));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>now</code> function takes no arguments and generates a new unique timeuuid (at the time where the statement using it is executed). The <code>dateOf</code> function takes a timeuuid argument and extracts the embedded timestamp. (Taken from the CQL documentation on <a href="http://cassandra.apache.org/doc/cql3/CQL.html#timeuuidFun">timeuuid functions</a>)</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_轻量级事务">3.2. 轻量级事务</h4>
+<div class="paragraph">
+<p>使用IF从句实现</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>INSERT INTO emp(empid,deptid,address,first_name,last_name) VALUES(102,14,'luoyang','Jane Doe','li') IF NOT EXISTS;
+UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_name='zhang';</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_指定column的过期时间">3.3. 指定column的过期时间</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>INSERT INTO emp(empID, deptID, first_name, last_name) VALUES(105, 17, 'jane', 'smith') USING TTL 60;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>其中USING TTL 60指明该条数据60秒后过期，届时会被自动删除。另外指定了TTL的数据columns会在compaction和repair操作中被自动删除。指定TTL会有8字节额外开销。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_查询过期时间">3.4. 查询过期时间</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>SELECT TTL(last_name)from emp;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_更新过期时间">3.5. 更新过期时间</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>INSERT INTO emp (empID, deptID, first_name, last_name) VALUES (105, 17, 'miaomiao', 'han') USING TTL 3600;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>也即，以新的TTL重插一遍数据即可。（指定插入的整条数据的过期时间）</p>
+</div>
+<div class="paragraph">
+<p>或者`UPDATA emp USING TTL 3600 SET last_name='han' where empid=105 and deptid=17;` （指定set指明的数据的过期时间）</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_查询写入时间">3.6. 查询写入时间</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>SELECT WRITETIME(first_name) from emp;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>可查的该数据何时被插入。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_添加columns">3.7. 添加columns</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>ALTER TABLE emp ADD address varchar;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_更改column数据类型">3.8. 更改column数据类型</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>ALTER TABLE emp ALTER address TYPE text;</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tips">4. Tips</h2>
+<div class="sectionbody">
+<div class="sect3">
+<h4 id="_关于row_cache">4.1. 关于row cache</h4>
+<div class="paragraph">
+<p>Datastax <a href="http://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_configuring_caches_c.html?scroll=concept_ds_n35_nnr_ck__about-the-row-cache">About the row cache</a> 有一句很重要的话：</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Cassandra caches all rows in a partition when reading the partition. While storing the row cache <em>off-heap</em>, Cassandra has to deserialize a partition into heap to read from it.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Cache基于partition从off-heap向heap复制，这一过程几乎是不可控的，很容易导致heap溢出，所以也不推荐使用。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_批处理boundstatement">4.2. 批处理BoundStatement</h4>
+<div class="paragraph">
+<p>BoundStatement默认类型是`Type.LOGGED`,此模式下可实现原子提交，这也是BoundStatement最主要的作用。</p>
+</div>
+<div class="paragraph">
+<p>BatchStatement减少了网络交互，但也增加了日志在多节点复制的过程，性能可能提升也可能下降，应使用`executeAsync`获得性能优化。参考 <a href="http://wiki.apache.org/cassandra/FAQ#batch_bulkload" class="bare">http://wiki.apache.org/cassandra/FAQ#batch_bulkload</a></p>
+</div>
+<div class="paragraph">
+<p>BatchStatement最多只允许65535(0xFFFF)条记录一次提交。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_数据估算">4.3. 数据估算</h4>
+<div class="paragraph">
+<p>Cassandra没有索引，所以无法通过扫描索引获得count，只能全表扫描，性能较差，所以限制了返回的记录数量。
+当记录数较小的时候可以用</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>select count(*) from cf;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>当记录数很大的时候，会返回`OperationTimedOut: errors={}`错误，这时可以通过nodetool获得一个估算值</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>nodetool cfstats [&lt;keyspace.cfname&gt;...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Number of keys (estimate) 一行显示的就是估算值。</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+如果是多重主键，这里只是第一个键的数量，跟记录数无关
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_删除所有数据">4.4. 删除所有数据</h4>
+<div class="paragraph">
+<p>Cassandra只能按where条件删除记录，如果想删除所有记录需要用`TRUNCATE`</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>TRUNCATE keyspace_name.table_name;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or if you are already using the keyspace that contains your target table:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>TRUNCATE table_name;</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_references">5. References:</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://ahappyknockoutmouse.wordpress.com/2014/11/12/246/">Things You Should Be Doing When Using Cassandra Drivers</a></p>
+</li>
+<li>
+<p><a href="http://christopher-batey.blogspot.jp/2013/10/cassandra-datastax-java-driver-retry.html">Cassandra: Datastax Java driver retry policy</a></p>
+</li>
+<li>
+<p><a href="http://www.planetcassandra.org/blog/composite-keys-in-apache-cassandra/">Composite Keys in Apache Cassandra</a></p>
+</li>
+<li>
+<p><a href="http://codrspace.com/b441berith/cassandra-sstable-memtable-inside/">Cassandra SSTable, Memtable inside</a></p>
+</li>
+<li>
+<p><a href="http://www.slideshare.net/patrickmcfadin/the-data-model-is-dead-long-live-the-data-model">The data model is dead, long live the data model</a></p>
+</li>
+<li>
+<p><a href="http://www.slideshare.net/patrickmcfadin/real-data-models-of-silicon-valley">Real data models of silicon valley</a></p>
+</li>
+<li>
+<p><a href="http://www.slideshare.net/patrickmcfadin/become-a-super-modeler">Become a super modeler</a></p>
+</li>
+<li>
+<p><a href="http://www.slideshare.net/johnny15676/going-native-with-apache-cassandra">Going native with Apache Cassandra</a></p>
+</li>
+<li>
+<p><a href="http://dongxicheng.org/nosql/cassandra-strategy/" class="bare">http://dongxicheng.org/nosql/cassandra-strategy/</a></p>
+</li>
+<li>
+<p><a href="http://blog.csdn.net/zyz511919766/article/details/38683219" class="bare">http://blog.csdn.net/zyz511919766/article/details/38683219</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

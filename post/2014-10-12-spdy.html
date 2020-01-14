@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+         <h1 class="post-title">             SPDY简介         </h1>
+     
+     <div class="toc md">
+<h1>Table of Contents</h1>
+<ul class="toc-list">
+<li><a href="#http面临的问题">HTTP面临的问题</a></li>
+<li><a href="#spdy协议设计">SPDY协议设计</a></li>
+<li><a href="#spdy请求应答">SPDY请求应答</a></li>
+<li><a href="#协议协商">协议协商</a></li>
+<li><a href="#quic">QUIC</a></li>
+<li><a href="#spdy代理">SPDY代理</a></li>
+<li><a href="#http2">HTTP/2</a></li>
+<li><a href="#spdy不足">SPDY不足</a></li>
+<li><a href="#chrome-net-internals-wireshark">Chrome net internals &amp; Wireshark</a></li>
+<li><a href="#后记">后记</a></li>
+</ul>
+</div>
+<hr/>
+<p>SPDY（读作speedy）是Goolge设计的一个对HTTP的增强协议，主要解决HTTP协议的传输效率和延迟问题。</p>
+<p>在了解SPDY之前，我们先看看HTTP协议自身的一些局限性。</p>
+<h2 id="http面临的问题" class="md">HTTP面临的问题</h2>
+<p>首先HTTP协议是建立在TCP协议之上的，而TCP协议有几个特点是不利于传输和降低延迟的。</p>
+<ol>
+<li><strong>三步握手（three-way handshake）</strong> TCP使用三步握手以建立可靠连接，虽然在第三次握手的时候即可携带有效报文数据，但仍然需要浪费一次RTT时间。<br />
+<img src="images/tcp-handshake.png" alt="three-way handshake" /><br />
+对于长距离传输，RTT时间基本是受限于物理规则的。我们可以简单计算一下，假设一个用户从新加坡向美国加州旧金山的网站发起连接，显然这是一次利用海底光缆的跨洋传输。在<a href="http://www.cablemap.info">http://www.cablemap.info</a> 我们可以查到全球海底光缆的布局情况，从新加坡到加州并非一条直线，光缆从新加坡到加州需要经过香港、菲律宾、关岛、夏威夷等节点，总距离超过1万6千公里。我们很容易查到海底光缆的折射率大概在<a href="http://www.corning.com/WorkArea/showcontent.aspx?id=40711">1.47</a>，这表明光纤中光速大概是30/1.47约每秒20万公里。仅考虑光速，一个RTT时间也是 1.6/30 x 1.47 x 2 约156ms，实际上这段距离的RTT大概在180ms，可以优化的空间非常少了。</li>
+<li><strong>慢启动（slow start）<strong>和</strong>拥塞控制算法（congestion avoidance algorithm）</strong> TCP的慢启动和拥塞控制机制都是基于滑动窗口实现的避免网络过载的方法，简单来说，由于初始网络状况未知，TCP一开始使用较小的速率发送，然后以2的指数倍增加速率，直到出现丢包（也就是出现拥塞），接着迅速降低速率（减半，回到上一个指数值），再以线性方式增加速率（其实是更平缓的指数），最终获得最合适的传输速率。而这个协商过程需要经历多次RTT时间。<br />
+<img src="images/congestion_avoidance.png" alt="congestion avoidance" /></li>
+</ol>
+<p>从上面2点我们很容易发现，要想充分利用TCP，需要尽量重用连接，避免建立新连接。于是HTTP/1.1中引入了<code>Connection: Keep-Alive</code>属性，自此我们可以在一个TCP连接上传输多个资源。但HTTP仍然是个<strong>半双工协议</strong>，一次请求然后等待一次应答，仍然有大量的时间浪费在等待上。（<em>HTTP/1.1的Pipelining虽然可以实现管线化传输，但由于诸多问题，Chrome早期版本默认并不启用，而新版已将此功能移除</em>）<br />
+而且由于HTTP是<strong>无状态文本协议</strong>，每次请求都需要设置大量的Header字段，在传输性能上也不够好。</p>
+<p>基于以上因素，Google设计开发了SPDY协议，我们来看看这个协议的设计。</p>
+<h2 id="spdy协议设计" class="md">SPDY协议设计</h2>
+<p>SPDY是工作在SSL之上的会话层协议，在单一TCP通道内提供多个会话流，从而实现了对TCP的多路复用。我们可以将SPDY理解为TCP链路上的一系列虚拟隧道和跑在这些隧道中的HTTP数据。</p>
+<p><img src="images/spdy-level.png" alt="spdy-level" /></p>
+<p>SPDY的主要特性如下：</p>
+<ul>
+<li>基本特性：
+<ol>
+<li>多路复用，一个TCP通道内有多个独立的数据流</li>
+<li>请求优先级，不同的流有不同的优先级，使重要资源优先传输</li>
+<li>HTTP Header压缩</li>
+</ol>
+</li>
+<li>高级特性：
+<ol>
+<li>服务端推送，主动向浏览器推送资源</li>
+<li>服务端建议，在浏览器连接后建议浏览器接下来获取哪些资源</li>
+</ol>
+</li>
+</ul>
+<p>SPDY的概念主要有会话、流、帧。<br />
+<strong>会话(session)</strong>：等同于连接（connection）<br />
+<strong>流(stream)</strong>：在会话中的双向虚拟通道，通过Stream-ID来区分<br />
+<img src="images/spdy-stream.png" alt="spdy stream" /><br />
+<strong>帧(frames)</strong>：在流中传输的最小单元，分为控制帧和数据帧两种<br />
+<img src="images/spdy-frames.png" alt="spdy frames" /><br />
+所有的SPDY帧都有8字节的首部，通过第一个bit区分是控制帧还是数据帧</p>
+<pre><code>控制帧
++----------------------------------+
+|C| Version(15bits) | Type(16bits) |
++----------------------------------+
+| Flags (8)  |  Length (24 bits)   |
++----------------------------------+
+|               Data               |
++----------------------------------+
+</code></pre>
+<pre><code>数据帧
++----------------------------------+
+|C|       Stream-ID (31bits)       |
++----------------------------------+
+| Flags (8)  |  Length (24 bits)   |
++----------------------------------+
+|               Data               |
++----------------------------------+
+</code></pre>
+<ul>
+<li>C是控制标识位，1为控制帧，0为数据帧。</li>
+<li>Version是SPDY的版本，版本3.1也使用3.</li>
+<li>Type是控制帧的类型，例如创建流；应答创建流；PING；设置流的带宽、初始窗口、当前窗口、TCP CWND、TCP RTT等等，是不是很像又实现了一套TCP的传输控制机制？SPDY正是想在会话层弥补TCP传输层的不足。此外还有HEADERS帧用于携带HTTP Header的内容。</li>
+<li>Flags是对帧状态的指示，不同类型的帧有不同的Flags，例如数据帧使用0x01(FLAG_FIN)标识数据结束，而一些控制帧没有Flags，这个值必须设为0.</li>
+<li>Length就是数据长度。</li>
+<li>Data是有效载荷。</li>
+<li>Stream-ID就是流的标识。部分控制帧是跟流相关的，例如HEADERS帧，这些帧在Data段会携带Stream-ID。</li>
+</ul>
+<p>SPDY这种基于流的连接复用有什么优势呢？<br />
+下图分别描述了HTTP/1.1、TCP和SPDY的连接复用模型，显然SPDY的多路复用比HTTP/1.1的同步模型要高效很多，所以SPDY规范里面明确禁止使用Connection, Keep-Alive, Proxy-Connection这些连接相关Header。<br />
+<img src="images/multiplexing.png" alt="multiplexing" /></p>
+<p>除了连接复用，SPDY还对Header进行了压缩。SPDY规定所有的Header名都必须全小写，并使用基于字典表的zlib压缩。</p>
+<h2 id="spdy请求应答" class="md">SPDY请求应答</h2>
+<p>SPDY的请求应答过程跟HTTP/1.1非常相似，但是我们注意到有一些以冒号开头的header，这些header是SPDY对HTTP协议的增强，个人认为其目的是为了在SPDY隧道中实现对HTTP的路由。</p>
+<pre><code> GET /resource HTTP/1.1           HEADERS
+  Host: example.org          ==&gt;     + END_STREAM
+  Accept: image/jpeg                 + END_HEADERS
+                                       :method = GET
+                                       :scheme = https
+                                       :path = /resource
+                                       :host = example.org
+                                       :version = HTTP/1.1
+                                       accept = image/jpeg
+</code></pre>
+<pre><code>HTTP/1.1 200 OK                  HEADERS
+  Content-Type: image/jpeg   ==&gt;     - END_STREAM
+  Content-Length: 123                + END_HEADERS
+                                       :status = 200
+  {binary data}                        content-type = image/jpeg
+                                       content-length = 123
+
+                                   DATA
+                                     + END_STREAM
+                                   {binary data}
+</code></pre>
+<h2 id="协议协商" class="md">协议协商</h2>
+<p>显然当浏览器连接服务器的时候并不知道服务器是否支持SPDY，SPDY为了节约一次RTT时间，对TLS协议做了扩展，这样在TLS握手阶段就可以实现SPDY的协议协商，这个扩展协议也是由Google提出的，名叫NPN(TLS Next Protocol Negotiation),后来HTTP/2草案设计的时候也借鉴NPN设计了ALPN作为HTTP/2的协商协议。目前Chrome已经在使用ALPN了。</p>
+<p>NPN流程</p>
+<pre><code>Client                                                Server
+
+ClientHello (NP extension)    --------&gt;
+                                                 ServerHello (NP extension &amp; list of protocols)
+                                          [ChangeCipherSpec]
+                              &lt;--------             Finished
+[ChangeCipherSpec]
+NextProtocol
+Finished                      --------&gt;
+Application Data              &lt;-------&gt;     Application Data
+</code></pre>
+<h2 id="quic" class="md">QUIC</h2>
+<p>由于SPDY运行在SSL之上，无可避免的会因为SSL握手带来额外两次RTT，同时SPDY也无法避免TCP的队首阻塞问题(Head-of-line blocking)，野心勃勃的Google当然不会就此满足，于是QUIC(Quick UDP Internet Connections)就此诞生。这是一个在UDP上实现的提供可靠传输的协议，并且加入了类似SSL的加密机制。QUIC非常像基于<a href="http://en.wikipedia.org/wiki/Stream_Control_Transmission_Protocol">Stream Control Transmission Protocol (SCTP)</a>运行的<a href="http://en.wikipedia.org/wiki/Datagram_Transport_Layer_Security">Datagram Transport Layer Security (DTLS)</a>协议，但是相比以上两个协议的结合，QUIC提供了更低的延迟。<br />
+* 首次连接: 通常 1 RTT, 有时 2 RTTs<br />
+* 再次连接: 通常 0 RTT; 有时 1 RTT; 偶尔 2 RTTs</p>
+<h2 id="spdy代理" class="md">SPDY代理</h2>
+<p>前文已经说了SPDY可以理解为TCP链路上的一系列虚拟隧道和跑在这些隧道中的HTTP数据，虽然SPDY将这两部分混在了一起，其实隧道部分可以独立运行，即SPDY的代理模式。注意这也是目前唯一的一种HTTPS代理模式，以前我们只能在HTTP代理上通过CONNECT方法建立HTTP tunnel，但跟代理建立连接的过程没有SSL加密。 <img src="images/spdy-proxy.png" alt="spdy proxy" /></p>
+<p>详细请参考<a href="http://www.chromium.org/spdy/spdy-proxy">http://www.chromium.org/spdy/spdy-proxy</a></p>
+<h2 id="http2" class="md">HTTP/2</h2>
+<p>HTTP/2是由IETF HTTPbis Working Group基于SPDY进行标准化后的协议。由于SPDY与HTTP/2同时在演进，并且互相借鉴，在目前阶段深究这两个协议的差异意义不大。但HTTP/2允许在非SSL链路上使用，于是设计了一套不依赖ALPN的Upgrade机制。</p>
+<pre><code>GET /page HTTP/1.1
+Host: server.example.com
+Connection: Upgrade, HTTP2-Settings
+Upgrade: HTTP/2.0                   //Initial HTTP 1.1 request with HTTP 2.0 upgrade header
+HTTP2-Settings: (SETTINGS payload)  //Base64 URL encoding of HTTP/2.0 SETTINGS payload
+
+HTTP/1.1 200 OK                     //Server declines upgrade, returns response via HTTP 1.1
+Content-length: 243
+Content-type: text/html
+
+(... HTTP 1.1 response ...)
+
+          (or)
+
+HTTP/1.1 101 Switching Protocols   //Server accepts HTTP 2.0 upgrade, switches to new framing
+Connection: Upgrade
+Upgrade: HTTP/2.0
+
+(... HTTP 2.0 response ...)
+</code></pre>
+<p>基本上，我们可以将SPDY看成HTTP/2的早期实验版，从Upgrade机制来看SPDY也更加激进，而HTTP/2相对会保守正统些。</p>
+<h2 id="spdy不足" class="md">SPDY不足</h2>
+<p>SPDY虽然对单TCP连接的利用到了极致，但在互联网上，带宽基本是均分到链路中各个连接的，单连接的SPDY无法充分发挥用户到网站的带宽。除非以后SPDY一统天下，大家都只用一个连接。</p>
+<h2 id="chrome-net-internals-wireshark" class="md">Chrome net internals &amp; Wireshark</h2>
+<p>对SPDY的调试最主要的工具就是Chrome内置的net internals,输入<code>chrome://net-internals/#spdy</code>即可看到当前SPDY会话。点击页面对应的会话ID，再刷新页面，就可以看到SPDY数据的详细情况了。<br />
+<img src="images/spdy-internals.png" alt="Chrome net internals" /><br />
+如果我们想查看更详细的SPDY数据包，就需要使用Wireshark进行抓包了。Wireshark处理HTTPS的前提是拥有网站证书私钥，所以只能对自己的网站进行抓包。最新版Wireshark(1.12.1)已经可以支持SPDY协议，安装后在Edit -&gt; Preferences -&gt; Protocols -&gt; SSL -&gt; RSA Key list 中增加私钥配置。<br />
+<img src="images/wireshark-spdy.png" alt="wireshark-spdy" /><br />
+嗯，TLS握手，ALPN协商，SPDY每个流，每一帧都一目了然了。<br />
+<img src="images/wireshark-npn.png" alt="NPN" /><br />
+要注意的是在我现在用的Wireshark版本上解析spdy有个小bug，会将控制帧识别为数据帧，如下图所示<br />
+<img src="images/wireshark-data.png" alt="Data frames" /></p>
+<h2 id="后记" class="md">后记</h2>
+<p>本文可以看做是High Performance Browser Networking: <a href="http://chimera.labs.oreilly.com/books/1230000000545/index.html">http://chimera.labs.oreilly.com/books/1230000000545/index.html</a> 的读书笔记，再结合了我自己对SPDY的理解，特别感谢Ilya Grigorik将这本的电子版放到了网上，Ilya的个人网站<a href="https://www.igvita.com/archives/">https://www.igvita.com/archives/</a> 也非常值得看看。</p>
+
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>

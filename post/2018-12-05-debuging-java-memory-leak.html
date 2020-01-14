@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+     <h1>分析 Java 内存泄漏</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_java_内存分类">1. Java 内存分类</a></li>
+<li><a href="#_分析策略">2. 分析策略</a>
+<ul class="sectlevel2">
+<li><a href="#_堆内内存">2.1. 堆内内存</a></li>
+<li><a href="#_堆外内存">2.2. 堆外内存</a></li>
+<li><a href="#_内存虚段">2.3. 内存虚段</a></li>
+<li><a href="#_native_method_内存">2.4. Native method 内存</a></li>
+<li><a href="#_参考">2.5. 参考</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="http://chenhm.com">Chen Hongming</a></p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_java_内存分类">1. Java 内存分类</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Heap</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Eden</p>
+<div class="ulist">
+<ul>
+<li>
+<p>TLAB ( Thread Local Allocation Buffers )</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Survivor</p>
+</li>
+<li>
+<p>Old</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Non-heap</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Permanent generation: JAVA 1.8 中已经被 Metaspace 代替</p>
+</li>
+<li>
+<p>Metaspace</p>
+</li>
+<li>
+<p>direct buffer</p>
+</li>
+<li>
+<p>mapped buffer</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Stack</p>
+</li>
+<li>
+<p>PC register</p>
+</li>
+<li>
+<p>Native method stack</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_分析策略">2. 分析策略</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_堆内内存">2.1. 堆内内存</h3>
+<div class="paragraph">
+<p>堆内泄漏是最简单的一种情况，我们可以直接通过 <code>jstat -gc &lt;pid&gt; 2000</code> 或 <code>jconsole</code>,<code>jvisualvm</code> 这样的可视化工具观察到内存增长状态，
+确定内存增长不正常之后，通过 <code>jcmd &lt;PID&gt; GC.heap_dump heap.bin</code> 生成 heap dump 文件，然后使用 <a href="https://www.eclipse.org/mat/">MAT</a> 或 <a href="http://www-01.ibm.com/support/docview.wss?uid=swg27006624&amp;aid=1">IBM Heap Analyzer</a> 分析 Heap 中的对象关系，很容易找到堆内不正常的对象。</p>
+</div>
+<div class="paragraph">
+<p>另一个很好用的工具是 <a href="https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/run.htm">Java Flight Recorder (JFR)</a>，可以看到内存增长统计。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_堆外内存">2.2. 堆外内存</h3>
+<div class="paragraph">
+<p>堆外空间的统计主要依赖 <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/troubleshoot/tooldescr007.html">"Native Memory Tracking" (NMT)</a>
+和强大的 <a href="http://openjdk.java.net/groups/hotspot/docs/Serviceability.html#bsa">HotSpot Serviceability Agent</a>, 例如R大之前就写过一些基于 SA 的小工具 <a href="https://rednaxelafx.iteye.com/blog/1814429" class="bare">https://rednaxelafx.iteye.com/blog/1814429</a></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_内存虚段">2.3. 内存虚段</h3>
+<div class="paragraph">
+<p>有时我们会发现进程占用了较高的虚地址空间，即 <code>top</code> 的 VIRT 或 <code>ps aux</code> 的 VSZ 空间。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+11456 root      20   0 17.344g 8.814g  18048 S   0.7  9.3  20:12.61 java</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>通常而言我们不用担心 VIRT 空间，如果确实 VIRT 很大而 RES 正常，可以通过 MALLOC_ARENA_MAX 环境变量限制 glibc 的预分配段。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_native_method_内存">2.4. Native method 内存</h3>
+<div class="paragraph">
+<p>由于 native method 的执行不受 JVM GC管理，在这里发生的内存泄漏无法通过 Java 自带工具观察。
+这时需要通过 malloc_hook 追踪 malloc 的调用链，但我们有个更简单的方法，
+那就是使用分配器 <a href="https://github.com/jemalloc/jemalloc">jemalloc</a> 代替 glibc 中的 malloc 实现，
+利用 jemalloc 的 Profiling 功能分析内存分配过程。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>从 <a href="https://github.com/jemalloc/jemalloc/releases" class="bare">https://github.com/jemalloc/jemalloc/releases</a> 下载最后版本的 jemalloc 源码</p>
+</li>
+<li>
+<p>解压后执行 <code>./configure --enable-prof &amp;&amp; make</code> 编译代码</p>
+</li>
+<li>
+<p>设置环境变量让 jemalloc 生效</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>export LD_PRELOAD=$JEMALLOC_DIR/lib/libjemalloc.so
+export MALLOC_CONF=prof:true,lg_prof_interval:30,lg_prof_sample:17</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>启动 JAVA 进程重现内存泄漏过程，这时在当前目录可以看到大量 jeprof 开头的 heap 文件，执行如下 jeprof 生成统计图表。</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>$JEMALLOC_DIR/bin/jeprof --show_bytes --svg /usr/bin/java jeprof*.heap &gt; app-profiling.svg</code></pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/app-profiling.gif" alt="app profiling"/>
+</div>
+</div>
+</li>
+<li>
+<p>例如上面的统计图我们发现一个 Java native method <code>Java_java_util_zip_Inflater_inflateBytes</code> 上进行了大量内存分配，现在需要找出是哪里调用了这个方法。
+对于 Java 来说查看调用链最简单的方法就是创建 thread dump，我写了下面这个小脚本不断创建 thread dump 直到找到指定的方法调用栈。</p>
+<div class="listingblock">
+<div class="title">dump_leak_thread.sh</div>
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">#!/usr/bin/bash
+PID=`jcmd |grep $1|awk '{print $1}'`
+if [ -z $PID ]; then
+ echo "Not found process matching pattern: $1"
+ exit
+fi
+echo "find pid: $PID"
+touch leak_thread.dump
+while ! grep "$2" leak_thread.dump &gt; /dev/null; do
+  echo "jcmd $PID Thread.print &gt; leak_thread.dump"
+  jcmd $PID Thread.print &gt; leak_thread.dump
+done</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>通过上面的方法我们可以找到 native method 中发生的内存泄漏，
+但其实我们多次发现类似的故障都是由于 java zip 包中的 Inflater 实现问题导致，如果多次读取 jar 包中的文件但没及时关闭，将会面临内存异常消耗的问题。
+如果你的代码中并没有使用 JNI 却发生了 native method 内存泄漏，可以试试直接执行上面的脚本查找调用栈
+<code>./dump_leak.sh &lt;PROCESS_NAME&gt; inflate</code>。</p>
+</div>
+<div class="paragraph">
+<p>如果确定是 Inflater 的问题，除了修改代码避免问题之外，还可以通过 <code>-XX:+UseG1GC</code> 启用 G1 垃圾回收器避免问题扩大。
+G1能够更有效的回收 heap 中的无效对象，比如未close的stream会被相对及时回收，使内存泄漏最终控制在一个可控范围。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_参考">2.5. 参考</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://gdstechnology.blog.gov.uk/2015/12/11/using-jemalloc-to-get-to-the-bottom-of-a-memory-leak/">Using jemalloc to get to the bottom of a memory leak</a></p>
+</li>
+<li>
+<p><a href="http://www.evanjones.ca/java-native-leak-bug.html">Debugging Java Native Memory Leaks</a></p>
+</li>
+<li>
+<p><a href="http://openjdk.java.net/groups/hotspot/docs/Serviceability.html#bsa" class="bare">http://openjdk.java.net/groups/hotspot/docs/Serviceability.html#bsa</a></p>
+</li>
+<li>
+<p><a href="https://stackoverflow.com/questions/36588354/how-to-dump-java-objects-came-from-jvm-heap-old-generation" class="bare">https://stackoverflow.com/questions/36588354/how-to-dump-java-objects-came-from-jvm-heap-old-generation</a></p>
+</li>
+<li>
+<p><a href="https://shipilev.net/jvm-anatomy-park/" class="bare">https://shipilev.net/jvm-anatomy-park/</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+</body>
+</html>
