@@ -139,16 +139,22 @@
 <h3 id="dns" class="md">DNS</h3>
 <p>基于Cluster IP访问service显然不便，通常在集群内还有DNS服务，服务名会按以下规则注册。</p>
 <ul>
-<li>Services</li>
+<li>Services
+<ul>
 <li>A 记录
 <ul>
-<li><strong>Normal</strong> my-svc.my-namespace.svc.cluster.loca -&gt; cluster ip</li>
+<li><strong>Normal</strong> my-svc.my-namespace.svc.cluster.local -&gt; cluster ip</li>
 <li><strong>Headless</strong> my-svc.my-namespace.svc.cluster.local -&gt; endpoints ip</li>
 </ul>
 </li>
 <li>SRV 记录： 命名端⼝ _my-port-name._my-port-protocol.my-svc.my-namespace.svc.cluster.local</li>
-<li>Pods</li>
+</ul>
+</li>
+<li>Pods
+<ul>
 <li>A 记录 pod-ip-address.my-namespace.pod.cluster.local</li>
+</ul>
+</li>
 </ul>
 <p>例如以下命令可以查询kubernetes service的Cluster IP</p>
 <pre><code>nslookup kubernetes.default.svc.cluster.local 10.96.0.10
@@ -612,9 +618,12 @@ curl -v 127.0.0.1:8001/api/v1/pods  #get pods info
 <ul>
 <li>NodePort：仅支持四层网络，因为是暴露在node的外部IP上，通常前端需要再接四层负载均衡器。</li>
 <li>LoadBalancer：由云服务商提供的四层负载均衡器，与上面不同的是该LB能理解Cluster IP，通常性能较好，但不同厂商会有不同限制，很多厂商也不能提供该模式。</li>
-<li>Ingress：七层负载均衡器，部署上有两种</li>
+<li>Ingress：七层负载均衡器，部署上有两种
+<ul>
 <li>云服务商提供，类似LoadBalancer，但是支持七层网络特性</li>
 <li>部署在k8s集群内部，例如 nginx ingress controller，其仍然要通过 NodePort 或 LoadBalancer暴露到集群之外。</li>
+</ul>
+</li>
 </ul>
 <h3 id="pause-container" class="md">Pause container</h3>
 <p>Pause 容器存在于每个 Pod 里面，我们第一节提到了 pause 负责共享 namespace 给 Pod 中其他容器使用，此外它还有个重要作用是回收僵尸进程。如果我们直接跑 docker 就会知道，docker image里面常常需要打包 <code>tini</code> 作为 init 进程负责接管孤儿进程，例如 <a href="https://github.com/jenkinsci/docker/blob/master/Dockerfile">Jenkins Dockerfile</a>。因为容器在独立的 namespace 运行，不再由系统 PID 1 接管孤儿，容器内部的PID 1如果没能正确处理信号就会造成僵尸进程。Pause 就是 Pod 中默认的 init ，这样即使你的 image 里面没有正确收割僵尸进程，pause 接管之后也可以处理。 <a href="https://www.oschina.net/translate/docker-and-the-pid-1-zombie-reaping-problem">参考</a></p>
@@ -625,13 +634,11 @@ curl -v 127.0.0.1:8001/api/v1/pods  #get pods info
 </li>
 <li>
 <p><code>kubectl exec</code> 类似 <code>docker exec</code> 可以登陆到远程 pod 内部执行命令</p>
-</li>
-</ul>
 <pre><code class="language-bash">kubectl exec -it kube-apiserver-centos -n kube-system sh
 </code></pre>
-<ul>
-<li>容器内部有时候没有打包需要的调试工具，这时可以通过 <code>nsenter</code> 进入容器namespace，以查看 coredns 内部监听端口为例：</li>
-</ul>
+</li>
+<li>
+<p>容器内部有时候没有打包需要的调试工具，这时可以通过 <code>nsenter</code> 进入容器namespace，以查看 coredns 内部监听端口为例：</p>
 <pre><code class="language-bash">$&gt; docker ps|grep coredns # find container id
 d8a366f3c191
 $&gt; PID=`docker inspect --format '{{ .State.Pid }}' d8a366f3c191` # find PID
@@ -642,11 +649,13 @@ tcp6       0      0 :::53           :::*                 LISTEN      8327/coredn
 tcp6       0      0 :::9153         :::*                 LISTEN      8327/coredns
 udp6       0      0 :::53           :::*                             8327/coredns
 </code></pre>
-<ul>
-<li>k8s 启动状态不正常，首先检查 kubelet 日志</li>
-</ul>
+</li>
+<li>
+<p>k8s 启动状态不正常，首先检查 kubelet 日志</p>
 <pre><code class="language-bash">journalctl -efu kubelet
 </code></pre>
+</li>
+</ul>
 <h2 id="other-distributions" class="md">Other distributions</h2>
 <h3 id="k3s-rancher" class="md">K3s, Rancher</h3>
 <p>Rancher 非常早期就进入了这个市场，提供自己的k8s发行版和 RancherOS 作为host系统运行docker服务。以前k8s安装较复杂的时代，很多人都使用rancher安装k8s并管理集群。前不久他们发布的 k3s 很有特点，40MB的二进制执行文件，低内存需求，可以在边界设备使用。</p>
