@@ -52,12 +52,12 @@ Docker在containerd和runc之间还引入了containerd-shim，当runc启动容�
 基于Cluster IP访问service显然不便，通常在集群内还有DNS服务，服务名会按以下规则注册。
 
 - Services
-  - A 记录
-    - **Normal** my-svc.my-namespace.svc.cluster.loca -> cluster ip
-    - **Headless** my-svc.my-namespace.svc.cluster.local -> endpoints ip
-  -  SRV 记录： 命名端⼝ _my-port-name._my-port-protocol.my-svc.my-namespace.svc.cluster.local
+    - A 记录
+        - **Normal** my-svc.my-namespace.svc.cluster.local -> cluster ip
+        - **Headless** my-svc.my-namespace.svc.cluster.local -> endpoints ip
+    -  SRV 记录： 命名端⼝ _my-port-name._my-port-protocol.my-svc.my-namespace.svc.cluster.local
 - Pods
-  - A 记录 pod-ip-address.my-namespace.pod.cluster.local
+    - A 记录 pod-ip-address.my-namespace.pod.cluster.local
 
 例如以下命令可以查询kubernetes service的Cluster IP
 
@@ -623,8 +623,8 @@ CNI (Container Network Interface) 提供了一个标准化的方式调用第三�
 - NodePort：仅支持四层网络，因为是暴露在node的外部IP上，通常前端需要再接四层负载均衡器。
 - LoadBalancer：由云服务商提供的四层负载均衡器，与上面不同的是该LB能理解Cluster IP，通常性能较好，但不同厂商会有不同限制，很多厂商也不能提供该模式。
 - Ingress：七层负载均衡器，部署上有两种
-  - 云服务商提供，类似LoadBalancer，但是支持七层网络特性
-  - 部署在k8s集群内部，例如 nginx ingress controller，其仍然要通过 NodePort 或 LoadBalancer暴露到集群之外。
+    - 云服务商提供，类似LoadBalancer，但是支持七层网络特性
+    - 部署在k8s集群内部，例如 nginx ingress controller，其仍然要通过 NodePort 或 LoadBalancer暴露到集群之外。
 
 ### Pause container
 
@@ -635,27 +635,27 @@ Pause 容器存在于每个 Pod 里面，我们第一节提到了 pause 负责�
 - `kubectl port-forward` 可以将远程服务转发到本地，可以跳过外部 LB 的网络问题，也可以将服务的 debug端口暴露在本机，建议在本地 Windows Subsystem for Linux(WSL) 中运行。
 
 - `kubectl exec` 类似 `docker exec` 可以登陆到远程 pod 内部执行命令
-  ```bash
-  kubectl exec -it kube-apiserver-centos -n kube-system sh
-  ```
+    ```bash
+    kubectl exec -it kube-apiserver-centos -n kube-system sh
+    ```
 
 - 容器内部有时候没有打包需要的调试工具，这时可以通过 `nsenter` 进入容器namespace，以查看 coredns 内部监听端口为例：
-  ```bash
-  $> docker ps|grep coredns # find container id
-  d8a366f3c191
-  $> PID=`docker inspect --format '{{ .State.Pid }}' d8a366f3c191` # find PID
-  $> nsenter -t $PID -n netstat -nlp
-  Proto Recv-Q Send-Q Local Address   Foreign Address      State       PID/Program name
-  tcp6       0      0 :::8080         :::*                 LISTEN      8327/coredns
-  tcp6       0      0 :::53           :::*                 LISTEN      8327/coredns
-  tcp6       0      0 :::9153         :::*                 LISTEN      8327/coredns
-  udp6       0      0 :::53           :::*                             8327/coredns
-  ```
+    ```bash
+    $> docker ps|grep coredns # find container id
+    d8a366f3c191
+    $> PID=`docker inspect --format '{{ .State.Pid }}' d8a366f3c191` # find PID
+    $> nsenter -t $PID -n netstat -nlp
+    Proto Recv-Q Send-Q Local Address   Foreign Address      State       PID/Program name
+    tcp6       0      0 :::8080         :::*                 LISTEN      8327/coredns
+    tcp6       0      0 :::53           :::*                 LISTEN      8327/coredns
+    tcp6       0      0 :::9153         :::*                 LISTEN      8327/coredns
+    udp6       0      0 :::53           :::*                             8327/coredns
+    ```
 
 - k8s 启动状态不正常，首先检查 kubelet 日志
-  ```bash
-  journalctl -efu kubelet
-  ```
+    ```bash
+    journalctl -efu kubelet
+    ```
 
 ## Other distributions
 

@@ -41,97 +41,103 @@ Kafka集群中的每一台服务器都称之为broker。broker接收生产者的
 ### 练习
 
 1. 创建一个新的docker网络给Kafka使用
-   ```sh
-   docker network create --subnet=172.18.0.0/16 kafka  
-   ```
+    ```sh
+    docker network create --subnet=172.18.0.0/16 kafka  
+    ```
 
 2. 启动Kafka集群，我们这里创建一个3节点的zookeeper集群和一个3节点的Kafka集群。为方便我们从docker外部访问，我们将Kafka同时注册到内部和外部网络地址上，并通过docker proxy暴露给外部。
-   ```sh
-   IP=`ip a|grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep 192`
-   
-   docker run --net kafka --ip 172.18.0.2 --name zoo1 --restart always -d -e ZOO_MY_ID=1 -e ZOO_SERVERS="server.1=172.18.0.2:2888:3888 server.2=172.18.0.3:2888:3888 server.3=172.18.0.4:2888:3888" zookeeper:3.4.13
-   
-   docker run --net kafka --ip 172.18.0.3 --name zoo2 --restart always -d -e ZOO_MY_ID=2 -e ZOO_SERVERS="server.1=172.18.0.2:2888:3888 server.2=172.18.0.3:2888:3888 server.3=172.18.0.4:2888:3888" zookeeper:3.4.13
-   
-   docker run --net kafka --ip 172.18.0.4 --name zoo3 --restart always -d -e ZOO_MY_ID=3 -e ZOO_SERVERS="server.1=172.18.0.2:2888:3888 server.2=172.18.0.3:2888:3888 server.3=172.18.0.4:2888:3888" zookeeper:3.4.13
-   
-   docker run --net kafka --ip 172.18.0.5 --name kafka1 -p 9093:9093 -d \
-   	-e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-   	-e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://$IP:9093,INTERNAL://172.18.0.5:9092 \
-   	-e KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9093 \
-   	-e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-   	-e KAFKA_ZOOKEEPER_CONNECT="172.18.0.2:2181,172.18.0.3:2181,172.18.0.4:2181" \
-   	wurstmeister/kafka:2.12-2.0.1
-   
-   docker run --net kafka --ip 172.18.0.6 --name kafka2 -p 9094:9094 -d \
-   	-e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-   	-e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://$IP:9094,INTERNAL://172.18.0.6:9092 \
-   	-e KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9094 \
-   	-e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-   	-e KAFKA_ZOOKEEPER_CONNECT="172.18.0.2:2181,172.18.0.3:2181,172.18.0.4:2181" \
-   	wurstmeister/kafka:2.12-2.0.1
-   
-   docker run --net kafka --ip 172.18.0.7 --name kafka3 -p 9095:9095 -d \
-   	-e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-   	-e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://$IP:9095,INTERNAL://172.18.0.7:9092 \
-   	-e KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9095 \
-   	-e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-   	-e KAFKA_ZOOKEEPER_CONNECT="172.18.0.2:2181,172.18.0.3:2181,172.18.0.4:2181" \
-   	wurstmeister/kafka:2.12-2.0.1
-   ```
+    ```bash
+    IP=`ip a|grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep 192`
+    
+    docker run --net kafka --ip 172.18.0.2 --name zoo1 --restart always -d -e ZOO_MY_ID=1 \
+     -e ZOO_SERVERS="server.1=172.18.0.2:2888:3888 server.2=172.18.0.3:2888:3888 server.3=172.18.0.4:2888:3888" \
+     zookeeper:3.4.13
+    
+    docker run --net kafka --ip 172.18.0.3 --name zoo2 --restart always -d -e ZOO_MY_ID=2 \
+     -e ZOO_SERVERS="server.1=172.18.0.2:2888:3888 server.2=172.18.0.3:2888:3888 server.3=172.18.0.4:2888:3888" \
+     zookeeper:3.4.13
+    
+    docker run --net kafka --ip 172.18.0.4 --name zoo3 --restart always -d -e ZOO_MY_ID=3 \
+     -e ZOO_SERVERS="server.1=172.18.0.2:2888:3888 server.2=172.18.0.3:2888:3888 server.3=172.18.0.4:2888:3888" \
+     zookeeper:3.4.13
+    
+    docker run --net kafka --ip 172.18.0.5 --name kafka1 -p 9093:9093 -d \
+    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
+    -e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://$IP:9093,INTERNAL://172.18.0.5:9092 \
+    -e KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9093 \
+    -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
+    -e KAFKA_ZOOKEEPER_CONNECT="172.18.0.2:2181,172.18.0.3:2181,172.18.0.4:2181" \
+    wurstmeister/kafka:2.12-2.0.1
+    
+    docker run --net kafka --ip 172.18.0.6 --name kafka2 -p 9094:9094 -d \
+    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
+    -e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://$IP:9094,INTERNAL://172.18.0.6:9092 \
+    -e KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9094 \
+    -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
+    -e KAFKA_ZOOKEEPER_CONNECT="172.18.0.2:2181,172.18.0.3:2181,172.18.0.4:2181" \
+    wurstmeister/kafka:2.12-2.0.1
+    
+    docker run --net kafka --ip 172.18.0.7 --name kafka3 -p 9095:9095 -d \
+    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
+    -e KAFKA_ADVERTISED_LISTENERS=EXTERNAL://$IP:9095,INTERNAL://172.18.0.7:9092 \
+    -e KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9095 \
+    -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
+    -e KAFKA_ZOOKEEPER_CONNECT="172.18.0.2:2181,172.18.0.3:2181,172.18.0.4:2181" \
+    wurstmeister/kafka:2.12-2.0.1
+    ```
 
 3. 检查内部和外部地址上的Broker情况
-   ```sh
-   docker run -it --net kafka confluentinc/cp-kafkacat kafkacat -b 172.18.0.5:9092 -L
-   docker run -it --net host  confluentinc/cp-kafkacat kafkacat -b $IP:9093 -L
-   ```
+    ```sh
+    docker run -it --net kafka confluentinc/cp-kafkacat kafkacat -b 172.18.0.5:9092 -L
+    docker run -it --net host  confluentinc/cp-kafkacat kafkacat -b $IP:9093 -L
+    ```
 
 4. 创建有 2 个partition并且复制因子为 2 的topic并检查topic状态。这个命令需要在Kafka容器内部执行，我们可以通过`docker exec -it kafka1 sh`进入任意一台Kafka容器内部，注意后面所有`kafka`开头的shell都类似的要在Kafka容器内执行。
-   ```sh
-   kafka-topics.sh --zookeeper 172.18.0.2:2181 --create --topic test01 --replication-factor 2 --partitions 2
-   kafka-topics.sh --zookeeper 172.18.0.2:2181 --describe --topic test01
-   ```
-   应该可以看到类似下面的信息，表明在 Topic test01下面有 0 和 1 两个 Partition，而 partition 0 的 leader 是 1001，并且数据在 1001 和 1002 上存在副本，其中有效副本(in-sync replica set, ISR)是两个。
-   ```
-   Topic:test01    PartitionCount:2        ReplicationFactor:2     Configs:
-   
-   Topic: test01   Partition: 0    Leader: 1001    Replicas: 1001,1002     Isr: 1001,1002
-   Topic: test01   Partition: 1    Leader: 1002    Replicas: 1002,1003     Isr: 1002,1003
-   ```
+    ```sh
+    kafka-topics.sh --zookeeper 172.18.0.2:2181 --create --topic test01 --replication-factor 2 --partitions 2
+    kafka-topics.sh --zookeeper 172.18.0.2:2181 --describe --topic test01
+    ```
+    应该可以看到类似下面的信息，表明在 Topic test01下面有 0 和 1 两个 Partition，而 partition 0 的 leader 是 1001，并且数据在 1001 和 1002 上存在副本，其中有效副本(in-sync replica set, ISR)是两个。
+    ```
+    Topic:test01    PartitionCount:2        ReplicationFactor:2     Configs:
+    
+    Topic: test01   Partition: 0    Leader: 1001    Replicas: 1001,1002     Isr: 1001,1002
+    Topic: test01   Partition: 1    Leader: 1002    Replicas: 1002,1003     Isr: 1002,1003
+    ```
 
 5. 启动consumer监听topic，下面两个方法是等效的。
-   - 使用控制台脚本
+    - 使用控制台脚本
      ```sh
      kafka-console-consumer.sh --bootstrap-server 172.18.0.5:9092 --from-beginning --topic test01
      ```
-   - kafkacat
+    - kafkacat
      ```sh
      docker run -it --net kafka confluentinc/cp-kafkacat kafkacat -b 172.18.0.5:9092 -C -t test01
      ```
 
 6. 启动producer发送消息。启动下面的脚本或用kafkacat，随意输入些内容回车即可发送。发送同时，我们观察consumer的窗口，可以看到消息被立即接收。
-   ```sh
-   kafka-console-producer.sh --broker-list 172.18.0.5:9092 --topic test01
-   ```
-   发完成后查看topic上的offset状态，可以看到offset均匀的分散在两个partition上，该命令输出格式为`topic:partition:offset`
-   ```sh
-   $> kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list 172.18.0.5:9092 --topic test01
-   test01:0:5
-   test01:1:4
-   ```
-   继续检查consumer group状态，可以看到每个分区被哪些消费者连接，已消费的offset，剩余offset等信息
-   ```sh
-   $> kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
-   console-consumer-99123
-   $> kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group console-consumer-99123
-   TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                     HOST            CLIENT-ID
-   test01          0          5               5               0               consumer-1-3e032c2d-1e86-441a-8eb4-9df38b2d6824 /172.18.0.6     consumer-1
-   test01          1          4               4               0               consumer-1-3e032c2d-1e86-441a-8eb4-9df38b2d6824 /172.18.0.6     consumer-1
-   ```
+    ```sh
+    kafka-console-producer.sh --broker-list 172.18.0.5:9092 --topic test01
+    ```
+    发完成后查看topic上的offset状态，可以看到offset均匀的分散在两个partition上，该命令输出格式为`topic:partition:offset`
+    ```sh
+    $> kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list 172.18.0.5:9092 --topic test01
+    test01:0:5
+    test01:1:4
+    ```
+    继续检查consumer group状态，可以看到每个分区被哪些消费者连接，已消费的offset，剩余offset等信息
+    ```sh
+    $> kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+    console-consumer-99123
+    $> kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group console-consumer-99123
+    TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                     HOST            CLIENT-ID
+    test01          0          5               5               0               consumer-1-3e032c2d-1e86-441a-8eb4-9df38b2d6824 /172.18.0.6     consumer-1
+    test01          1          4               4               0               consumer-1-3e032c2d-1e86-441a-8eb4-9df38b2d6824 /172.18.0.6     consumer-1
+    ```
 7. 最后，对集群做个简单的性能测试，在我笔记本上大概可以跑到 70W 消息/秒。
-   ```sh
-   kafka-producer-perf-test.sh --topic benchmark --num-records 15000000 --record-size 100 --throughput 15000000 --producer-props bootstrap.servers=172.18.0.5:9092 batch.size=50000 acks=0
-   ```
+    ```sh
+    kafka-producer-perf-test.sh --topic benchmark --num-records 15000000 --record-size 100 --throughput 15000000 --producer-props bootstrap.servers=172.18.0.5:9092 batch.size=50000 acks=0
+    ```
 
 ## 可靠性与性能
 
@@ -141,9 +147,9 @@ Kafka作为消息系统有很多机制保证消息的可靠投递，但所有这
 每个分区都有一个归属broker称为分区leader，生产者需要直连该broker发送消息，分区leader会立即将消息持久化到磁盘。为防止分区leader意外宕机造成消息丢失，通常会设置消息副本，副本数量由topic 的ReplicationFactor决定。前面我们已经通过 `kafka-topics.sh --describe` 命令观察过分区的副本信息。那什么时候发生复制呢？这取决于几个因素：
 
 - 生产者的 acks 配置。acks 可以配置为 
-  - 0 ：生产者根本不等待broker的确认。这时分区leader都不一定能收到消息，副本就更不确定了。
-  - 1 ：生产者等待分区leader确认，这也是acks的默认值。
-  - all/-1 ：分区leader在确认前会等待所有 In-Sync Replicas(ISR) 节点完成复制。这个时候Kafka能最大程度保障消息不会丢失。
+    - 0 ：生产者根本不等待broker的确认。这时分区leader都不一定能收到消息，副本就更不确定了。
+    - 1 ：生产者等待分区leader确认，这也是acks的默认值。
+    - all/-1 ：分区leader在确认前会等待所有 In-Sync Replicas(ISR) 节点完成复制。这个时候Kafka能最大程度保障消息不会丢失。
 - In-Sync Replicas(ISR) 集合。为了保证消息不会丢失，复制策略通常有两种。一是 quorum-based，即写和读都需要等待 quorum 数量的节点，从而确保不会读到过期数据，Zookeeper 和 Cassandra 都是采用这样的策略。第二就是Kafka采用的 "all" 模式。显然真正的all会引起极大的延迟，所以Kafka引入了 ISR 的概念，ISR节点是那些同步速度能够跟上leader的follower ，如果follower同步过慢，将会从ISR列表移除，分区leader只等ISR列表中的followers应答即可认为完成all同步。注意，此时follower仅仅将消息存储在了内存，在极端情况下仍可能丢失消息。如果所有的follower都无法跟上leader，显然leader宕机将会导致数据丢失，这时可以通过设置 `min.insync.replicas` 以牺牲可用性来提高一致性。
 
 ### Offset管理
@@ -151,6 +157,7 @@ Kafka作为消息系统有很多机制保证消息的可靠投递，但所有这
 Consumer消费消息之后，需要将已消费的offset提交到broker，这样当consumer宕机的时候，消费群组的其他consumer可以从正确的位置开始消费。Offset的提交发生在每次 `poll()` 消息的时候，或者达到提交的最大间隔时间。特别需要注意的是，手动执行 `consumer.commitSync()` 其提交的offset仍然是 `poll()` 返回的批量记录，如果需要提交单条记录的offset需要使用 `commitSync(offsets)` 方法。
 
 消费者可以自行指定offset，消费topic中的任意一条记录，但通常我们使用两种模式的 `auto.offset.reset` 以简化开发:
+
 - latest: 消费分区上的最后一条offset
 - earliest: 消费分区在当前消费群组里的最后一条offset
 
@@ -183,8 +190,8 @@ Consumer能自动rebalance是否就足够了呢？想象一下当 broker 重启�
 
 3. *exactly-once*<br/>
 在上面的 *at-least-once* 模式下，配合外部查重，可以保证consumer正好一次的消费，但producer不能保证消息正好一次的投递。Kafka从 0.11 开始支持 *exactly-once*，为实现这一点Kafka引入了两个特性：
-   - 幂等发送。通过启用producer上的 `enable.idempotence`，每个producer发送的消息都会带上一个单调递增的序列号，broker一旦发现序号错误将会拒绝消息，这样producer就会知道消息出现重复或乱序，对应处理。
-   - 事务性提交和读取。每个producer由用户提供一个永远不变而唯一的 `transactional.id`，Kafka保证在同一个 `transactional.id` 上同一事务内的多个写操作具有原子性。同时在consumer上启用 `isolation.level = read_committed` 保证只读到producer上已提交的数据，从而可以保证consumer只会读到producer以 *exactly-once* 模式发送的消息。
+    - 幂等发送。通过启用producer上的 `enable.idempotence`，每个producer发送的消息都会带上一个单调递增的序列号，broker一旦发现序号错误将会拒绝消息，这样producer就会知道消息出现重复或乱序，对应处理。
+    - 事务性提交和读取。每个producer由用户提供一个永远不变而唯一的 `transactional.id`，Kafka保证在同一个 `transactional.id` 上同一事务内的多个写操作具有原子性。同时在consumer上启用 `isolation.level = read_committed` 保证只读到producer上已提交的数据，从而可以保证consumer只会读到producer以 *exactly-once* 模式发送的消息。
 
 
 ### 性能优化小结
@@ -192,23 +199,23 @@ Consumer能自动rebalance是否就足够了呢？想象一下当 broker 重启�
 结合上面的理论知识，我们总结一下Kafka在性能优化上的思路方向。
 
 - Producer优化
-  - 设置acks级别
-  - 启用传输压缩(compression.type = gzip)，这是个以CPU换网络IO的优化方案
-  - 优化消息大小，越小的消息发送性能越高，比如只传输最关键key值，消息整体从HBase读取。
-  - 调整batch和buffer的大小
-  - 调整 `linger.ms`，通过延迟消息发送以获得更好的批处理能力
+    - 设置acks级别
+    - 启用传输压缩(compression.type = gzip)，这是个以CPU换网络IO的优化方案
+    - 优化消息大小，越小的消息发送性能越高，比如只传输最关键key值，消息整体从HBase读取。
+    - 调整batch和buffer的大小
+    - 调整 `linger.ms`，通过延迟消息发送以获得更好的批处理能力
 
 - Consumer优化
-  - 避免Rebalance
-  - Consumer扩容的时候partition线性扩容
-  - 控制Consumer的数量，避免全部直连broker
+    - 避免Rebalance
+    - Consumer扩容的时候partition线性扩容
+    - 控制Consumer的数量，避免全部直连broker
 
 - Broker 优化
-  - 针对topic的不同应用场景，优化分区和副本的设置
-  - 消息存储压缩(Lz4/Gzip/Snappy)
-  - 分区会优先扩容在分区数量较少的磁盘目录上，配置多个 `log.dirs` 分别指向多个裸盘，让分区均衡到裸盘上以最大化连续读写能力，据说效果比raid好
-  - XFS比EXT4可能有更好的性能
-  - 操作系统的一些调优，例如文件描述符数量、socket 缓冲区大小、`vm.max_map_count` 数量等等。
+    - 针对topic的不同应用场景，优化分区和副本的设置
+    - 消息存储压缩(Lz4/Gzip/Snappy)
+    - 分区会优先扩容在分区数量较少的磁盘目录上，配置多个 `log.dirs` 分别指向多个裸盘，让分区均衡到裸盘上以最大化连续读写能力，据说效果比raid好
+    - XFS比EXT4可能有更好的性能
+    - 操作系统的一些调优，例如文件描述符数量、socket 缓冲区大小、`vm.max_map_count` 数量等等。
 
 ## Kafka的特性
 
@@ -219,16 +226,16 @@ Kafka最初被创建是因为 Linkedin 需要一个消息总线，所以从一�
 Kafka 使用中最需要避免高连接数下的高吞吐，因为高吞吐容易引起timeout从而引发rebalance，而高连接数下的rebalance可能会持续很久，造成系统长时间不可用，消息重复和丢失。所以我们可以从两个方向划分场景：
 
 1. 可靠数据传输 / 流式系统 / 削峰 / 日志
-   - 尽量设计为低并发，高流量，高吞吐
-   - 避免直连，比如利用Netty做连接代理，降低并发
+    - 尽量设计为低并发，高流量，高吞吐
+    - 避免直连，比如利用Netty做连接代理，降低并发
 
 2. 状态通知 / 消息系统 / 解耦
-   - 尽量设计为高并发，低流量，降低消息尺寸，数据共享Redis
-   - 实现动态扩容
+    - 尽量设计为高并发，低流量，降低消息尺寸，数据共享Redis
+    - 实现动态扩容
 
 3. 有序消息传递
-   - 使用单一分区
-   - 或接受消息后排序[Redis]
+    - 使用单一分区
+    - 或接受消息后排序[Redis]
 
 ### 其他类似服务
 
