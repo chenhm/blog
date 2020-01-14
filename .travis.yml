@@ -13,7 +13,7 @@ before_script:
 
 script:
   - curl -vL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o java-static-blog.jar
-  - java -Dfile.encoding=UTF-8 -jar java-static-blog.jar
+  - java -Dapp.post-path=post -Dfile.encoding=UTF-8 -jar java-static-blog.jar
 
 after_success:
   - cd dist
