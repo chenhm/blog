@@ -383,9 +383,9 @@ Spring的声明式事务是Spring中最精彩的部分，它充分利用了Sprin
 4. DataSourceUtils调用TransactionSynchronizationManager中绑定的资源获取Connection。
 5. 在Connection完成操作后，TransactionManager根据执行情况commit或rollback。
 
-image::https://www.plantuml.com/plantuml/svg/RP2nJiGm38RtFaLq4moyG0UajbaOaD0LnC9YKbylehMZn3q1Jq-J6-e2Kvpy___PSO0etla09ERm784IEF5CJGhef5z2u2W70yaqLT3Ufmdan75McKSW636-qOq5WPwNwF2lV5jexPwcRFqNkNDayj-WKYNKxKDRbnVnKoeMMpNcxjwqjV5quGzyzNBsfF1LFYuWk8xGPcjNcu5R7BsIkghBagtDkwVXYAbqsNHRsH9b8YpKsemesrMHjhUj_9t5pxLQSEUujeyu8IHKb07_OziIMB-oq6vYvRRvJzVL3DpnF7lPmV8sLhcfZLjxqXBKqXxenDhS_W00[]
-////
-[plantuml, spring-tx, png, width="100%"]
+//image::https://www.plantuml.com/plantuml/svg/RP2nJiGm38RtFaLq4moyG0UajbaOaD0LnC9YKbylehMZn3q1Jq-J6-e2Kvpy___PSO0etla09ERm784IEF5CJGhef5z2u2W70yaqLT3Ufmdan75McKSW636-qOq5WPwNwF2lV5jexPwcRFqNkNDayj-WKYNKxKDRbnVnKoeMMpNcxjwqjV5quGzyzNBsfF1LFYuWk8xGPcjNcu5R7BsIkghBagtDkwVXYAbqsNHRsH9b8YpKsemesrMHjhUj_9t5pxLQSEUujeyu8IHKb07_OziIMB-oq6vYvRRvJzVL3DpnF7lPmV8sLhcfZLjxqXBKqXxenDhS_W00[]
+
+[plantuml]
 ----
 participant "TransactionAspectSupport" as A
 participant "PlatformTransactionManager\n(DataSourceTransactionManager)" as B
@@ -409,7 +409,7 @@ deactivate C
 B --> A: cleanupTransactionInfo
 deactivate B
 ----
-////
+
 
 ## spring boot
 

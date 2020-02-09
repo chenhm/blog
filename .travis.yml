@@ -12,7 +12,7 @@ before_script:
   - git clone --branch gh-pages https://github.com/${GH_REF}.git dist
 
 script:
-  - curl -vL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog-0.0.1.jar" -o java-static-blog.jar
+  - curl -vL "https://github.com/chenhm/java-static-blog/releases/download/v0.0.1/java-static-blog.jar" -o java-static-blog.jar
   - java -Dapp.post-path=post -Dapp.google-tracking-id=UA-39495276-1 -Dfile.encoding=UTF-8 -jar java-static-blog.jar
 
 after_success:

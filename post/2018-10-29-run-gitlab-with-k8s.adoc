@@ -384,4 +384,4 @@ connect:
 
 3. 访问项目的 CI/CD -- Pipelines 页面查看job执行情况。
 
-至此我们已成功集成了Gitlab和k8s，下一篇将会深入介绍一些功能。
+至此我们已成功集成了Gitlab和k8s， link:2018-10-31-run-gitlab-with-k8s-2[下一篇] 将会深入介绍一些功能。

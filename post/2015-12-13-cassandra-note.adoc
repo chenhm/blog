@@ -14,7 +14,7 @@
 
 Chen Hongming <chenhm@gmail.com>
 
-本文的 http://chenhm.github.io/slides/cassandra/cassandra.html[HTML版] 或 http://chenhm.github.io/slides/cassandra/cassandra.pdf[pdf版]
+本文的 https://chenhm.com/slides/cassandra/cassandra.html[HTML版] 或 https://chenhm.com/slides/cassandra/cassandra.pdf[pdf版]
 
 ## 基本概念
 
@@ -101,10 +101,9 @@ RowKey: 1
 => (name=user2:, value=, timestamp=1449473822481729)
 => (name=user2:name, value=6e616d6532, timestamp=1449473822481729)
 ----
-image::https://www.plantuml.com/plantuml/svg/JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a_NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo-s9vxUhAF3QycYok8K-ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa-sVRDTSrpLyMPNXrNJigVpw0000[]
+//image::https://www.plantuml.com/plantuml/svg/JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a_NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo-s9vxUhAF3QycYok8K-ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa-sVRDTSrpLyMPNXrNJigVpw0000[]
 
-////
-[uml,file="composite-table.png"]
+[plantuml]
 --
 @startdot
 digraph G {
@@ -121,7 +120,7 @@ digraph G {
 +---------+------------+------------+-----+
 +-----------------------------------------+
 --
-////
+
 数据在C*内做数据分片的时候只能基于RowKey进行，所以复合键中的第一个键也被称为“Partition Key”。
 
 显然我们查询的时候只能按主键定义的顺序查找记录：
@@ -161,16 +160,16 @@ SSTable(sorted string table)上的数据是不可变的，通过追加数据来�
 - 每次写都写3份(`ConsistencyLevel.ALL`)，无疑系统肯定是一致的，这个时候从任何一个节点读取都可以获得最新的数据(`ConsistencyLevel.ONE`)
 - 每次只写1份(`ConsistencyLevel.ONE`)，系统出现了不一致，但只要读取了所有节点(`ConsistencyLevel.ALL`)，我们还是可以获得最新的数据。注意，要判断哪个节点上的数据是最新的，显然依赖时钟同步，所以C*各个节点必须配置ntp同步，但即使这样也无法精确同步时钟，所以C*在理论上无法保证完美的一致性。不过业务上很少会发生在非常小的时间内（同一机房一般小于1ms）多个客户端从不同节点更新了同一条记录的情况，所以从业务上来看一致性还是有保证的。关于记录选择参考 http://wiki.apache.org/cassandra/FAQ#clocktie[What happens if two updates are made with the same timestamp?] 
 +
-除了时钟同步，我们还可以通过每次都写同一个node的方法保证一致性，这样集群内记录的数据时间就以这个node为准了。对应`LoadBalancingPolicy`策略`new TokenAwarePolicy(new DCAwareRoundRobinPolicy(), false) //一个数据中心内使用同一个node`或`new TokenAwarePolicy(new RoundRobinPolicy(), false) //一个集群内使用同一个node`
+除了时钟同步，我们还可以通过每次都写同一个node的方法保证一致性，这样集群内记录的数据时间就以这个node为准了。对应 `LoadBalancingPolicy` 策略 `new TokenAwarePolicy(new DCAwareRoundRobinPolicy(), false) //一个数据中心内使用同一个node` 或 `new TokenAwarePolicy(new RoundRobinPolicy(), false) //一个集群内使用同一个node`
 
-- 上面第一种情况对于读的可用性很高，但对于写的可用性很低，第二种情况正好相反，如果我们每次写2份，读2份，那么既保证了一致性，同时读写也都有一定的可用性。这也是C*默认提供的一致性`ConsistencyLevel.QUORUM`, quorum定义为`quorum = (sum_of_replication_factors / 2) + 1`。这也是我们常说的 W + R > N 即可保证一致性。
+- 上面第一种情况对于读的可用性很高，但对于写的可用性很低，第二种情况正好相反，如果我们每次写2份，读2份，那么既保证了一致性，同时读写也都有一定的可用性。这也是C*默认提供的一致性 `ConsistencyLevel.QUORUM`, quorum定义为 `quorum = (sum_of_replication_factors / 2) + 1`。这也是我们常说的 W + R > N 即可保证一致性。
 - 牺牲强一致性，读写都为1，获得最好的可用性，由C*通过算法在一段时间后实现最终一致性。
 
 关于C*的隔离级请参考 http://docs.datastax.com/en/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html
 
 #### 读请求
 image::images/c-read.png[]
-上图显示了12个节点，复制因子为3，一致性级别为QUORUM的读情况，其中node 10是协调者。协调者会对比R1和R3返回的数据，将最新的数据返回给client。如果发现了数据不一致，后台进程还会尝试修复。可以通过表属性`read_repair_chance`设定读修复的比率，但Cassandra 2.0.9及以后的版本不需要读修复。
+上图显示了12个节点，复制因子为3，一致性级别为QUORUM的读情况，其中node 10是协调者。协调者会对比R1和R3返回的数据，将最新的数据返回给client。如果发现了数据不一致，后台进程还会尝试修复。可以通过表属性 `read_repair_chance` 设定读修复的比率，但Cassandra 2.0.9及以后的版本不需要读修复。
 
 #### 写请求
 image::images/c-write.png[]
@@ -295,7 +294,7 @@ The ``now`` function takes no arguments and generates a new unique timeuuid (at 
 #### 轻量级事务
 
 使用IF从句实现
-```
+```sql
 INSERT INTO emp(empid,deptid,address,first_name,last_name) VALUES(102,14,'luoyang','Jane Doe','li') IF NOT EXISTS;
 UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_name='zhang';
 ```
@@ -308,31 +307,31 @@ INSERT INTO emp(empID, deptID, first_name, last_name) VALUES(105, 17, 'jane', 's
 其中USING TTL 60指明该条数据60秒后过期，届时会被自动删除。另外指定了TTL的数据columns会在compaction和repair操作中被自动删除。指定TTL会有8字节额外开销。
 
 #### 查询过期时间
-```
+```sql
 SELECT TTL(last_name)from emp;
 ```
 
 #### 更新过期时间
-```
+```sql
 INSERT INTO emp (empID, deptID, first_name, last_name) VALUES (105, 17, 'miaomiao', 'han') USING TTL 3600;
 ```
 也即，以新的TTL重插一遍数据即可。（指定插入的整条数据的过期时间）
 
-或者`UPDATA emp USING TTL 3600 SET last_name='han' where empid=105 and deptid=17;` （指定set指明的数据的过期时间）
+或者 `UPDATA emp USING TTL 3600 SET last_name='han' where empid=105 and deptid=17;` （指定set指明的数据的过期时间）
 
 #### 查询写入时间
-```
+```sql
 SELECT WRITETIME(first_name) from emp;
 ```
 可查的该数据何时被插入。
 
 #### 添加columns
-```
+```sql
 ALTER TABLE emp ADD address varchar;
 ```
 
 #### 更改column数据类型
-```
+```sql
 ALTER TABLE emp ALTER address TYPE text;
 ```
 

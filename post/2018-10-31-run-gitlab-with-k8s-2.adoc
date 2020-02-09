@@ -1,0 +1,303 @@
+# 基于Kubernetes的Gitlab runner环境搭建(2)
+
+:numbered:
+
+http://chenhm.com[Chen Hongming]
+
+link:2018-10-29-run-gitlab-with-k8s[上一篇] 我们介绍了如何在kubernetes中安装Gitlab，并利用Kubernetes作为我们runner的执行环境，建立完整的CI环境。
+这篇我们介绍下Gitlab的一些使用技巧以及对k8s的相关配置。
+
+## Gitlab 管理
+
+### 启用 cache
+
+Gitlab 使用 kubernetes runner 的时候，每次执行job都会创建一组新的容器，但有时候我们希望保留之前的执行结果，
+比如使用 maven 或 npm 的本地仓库可以大大加快 build 过程，这种情况我们可以启用 CI Cache 功能。
+Cache 功能会将指定目录打成zip压缩包，上传到 AWS S3 或 Google GCS 兼容服务上，使用相同 cache id 的job在下次运行的时候会从S3服务获取压缩包，
+解压到指定目录，从而实现不同job或同一job在多次执行之间的文件共享。
+
+首先我们需要配置一个S3兼容服务，这里我们使用 https://minio.io/[MINIO] 并使用本地磁盘作为实际存储空间。
+
+.minio-deployment.yaml
+```yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  # This name uniquely identifies the Deployment
+  name: minio-deployment
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        # Label is used as selector in the service.
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        # Pulls the default Minio image from Docker Hub
+        image: minio/minio
+        args:
+        - server
+        - /storage
+        env:
+        # Minio access key and secret key
+        - name: MINIO_ACCESS_KEY
+          value: "DJTMMHJ9RPRZ93CSUV8M"
+        - name: MINIO_SECRET_KEY
+          value: "kKMtnwLnoakOVewv5X1ybrscLdViUdSs7nDvVFLl"
+        ports:
+        - containerPort: 9000
+        # Mount the volume into the pod
+        volumeMounts:
+        - name: storage # must match the volume name, above
+          mountPath: "/storage"
+      volumes:
+      - name: storage
+        hostPath:
+          path: /mnt/storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30900
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: minio
+```
+
+服务创建成功后通过 http://host:30900 可以访问 minio 服务，使用上面的 ACCESS_KEY 和 SECRET_KEY 登录，手工创建名称为 gitlab 的 bucket。
+修改之前的 runner 注册脚本，增加 cache 相关的配置。
+
+.gitlab-runner.yaml
+```yaml
+- name: CACHE_TYPE
+  value: "s3"
+- name: CACHE_PATH
+  value: "cache"
+- name: CACHE_SHARED
+  value: "false"
+- name: CACHE_S3_SERVER_ADDRESS
+  value: "host:30900"
+- name: CACHE_S3_ACCESS_KEY
+  value: "DJTMMHJ9RPRZ93CSUV8M"
+- name: CACHE_S3_SECRET_KEY
+  value: "kKMtnwLnoakOVewv5X1ybrscLdViUdSs7nDvVFLl"
+- name: CACHE_S3_BUCKET_NAME
+  value: "gitlab"     # 跟手工创建的 bucket 名称一致
+- name: CACHE_S3_INSECURE
+  value: "true"
+```
+
+现在我们可以编写 pipeline 验证一下 cache 功能。新建空项目放入如下 CI 脚本，触发 pipeline 执行。
+
+.__.gitlab-ci.yml__
+```yaml
+image: alpine
+
+stages:
+- build
+- test
+
+before_script:
+- echo "Hello"
+
+job A:
+  stage: build
+  script:
+  - mkdir -p vendor/
+  - echo "build job id: ${CI_JOB_ID}" > vendor/hello.txt
+  cache:
+    key: build-cache
+    paths:
+    - vendor/
+  after_script:
+  - echo "World"
+
+job B:
+  stage: test
+  script:
+  - cat vendor/hello.txt
+  cache:
+    key: build-cache
+    paths:
+    - vendor/
+
+```
+
+在 job 的执行窗口可以看到类似如下的输出，说明cache已经正常工作，也可以去 MINIO 的 web 界面查看 cache 文件。
+
+----
+Creating cache build-cache...
+vendor/: found 2 matching files
+Uploading cache.zip to http://host:30900/gitlab/cache/runner/f007ff8d/project/15/build-cache
+Created cache
+----
+
+### Debug CI Job
+
+#### gitlab-runner exec
+
+CI Job 执行肯定会遇到执行失败需要调试的情况，Gitlab 允许手工执行 `gitlab-runner exec <EXECUTOR TYPE> <JOB NAME>` 来运行本地 pipeline 文件中的指定 job，
+这个功能是完全运行在本地环境的，不需要连接 Gitlab server，对于编写调试 pipeline 有很大帮助。
+
+`gitlab-runner exec` 的使用非常简单，以运行 docker executor 为例：
+
+1. 找一台已经装了 docker 的机器，根据 https://docs.gitlab.com/runner/install/ 安装二进制文件即可，无需 install 为 service 或 register。
+2. `git clone` 项目到本地，注意项目里面应该有 `.gitlab-ci.yml` 脚本
+3. 进入项目目录，执行 `gitlab-runner exec docker <JOB NAME>` 即可
+
+但 `gitlab-runner exec` 也有很多 https://docs.gitlab.com/runner/commands/#limitations-of-gitlab-runner-exec[限制条件], 例如无法调试完整的stage，只能调试 job，不支持 job 依赖关系等等。
+
+#### Debug interactive mode
+
+Gitlab 提供了一个强大的基于 web 的交互终端，可以在执行job的时候直接登录该pod的控制台，调试pipeline，文档可以参考 https://docs.gitlab.com/ee/ci/interactive_web_terminal/[Interactive Web Terminals]。
+这个功能需要对 runner 做一些配置，这里我们利用 ingress 将 runner 暴露到集群外部，并且通过 `advertise_address` 参数告诉 gitlab server 如何连接我们的runner。
+
+1. 通过 initContainers 设置 runner session_server 参数，注意 `advertise_address` 是可以从 gitlab server 直连过来的地址。
++
+```yaml
+initContainers:
+  - name: init-runner-volume
+    image: alpine
+    imagePullPolicy: Never
+    command: ["sh", "-c"]
+    args:
+    - |
+      sed -i '/\[session_server\]/a \ \ listen_address = "0.0.0.0:8093"\n\ \ advertise_address = "runner.cilab.net:443"' /etc/gitlab-runner/config.toml
+```
+
+2. 将 runner 通过 ingress 暴露出来，注意修改 host 为自己的域名，并且内部 DNS 可以通过该域名找到 ingress controller。
++
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-runner-session-server
+spec:
+  ports:
+  - port: 443
+    targetPort: 8093
+    protocol: TCP
+  selector:
+    app: gitlab-runner
+---
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: gitlab-runner
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    protocol: TCP
+spec:
+  tls:
+  - hosts:
+    - runner.cilab.net
+  rules:
+  - host: runner.cilab.net
+    http:
+      paths:
+      - path: "/"
+        backend:
+          serviceName: gitlab-runner-session-server
+          servicePort: 443
+```
+
+#### 暴露调试端口
+
+类似在服务器上的Java远程调试，Gitlab job 执行的时候我们也可以远程调试，唯一的区别是需要先通过 `kubectl port-forward` 将执行 job 的 pod 相关端口映射回本地。
+
+//### 配置 Gitlab Pages
+
+### CI dashboard
+
+Gitlab 虽然内置了 dashboard，但给出的信息较少，我们可以部署一套 https://github.com/timoschwarzer/gitlab-monitor[gitlab-monitor] 监控pipeline的执行情况。
+gitlab-monitor 通过JavaScript调用 gitlab api 抓取项目下的pipeline列表和执行情况，部署的时候要注意api访问的跨域问题，建议利用 https://docs.gitlab.com/ee/user/project/pages/[Gitlab Pages] 将 dashboard 和 gitlab server 部署在同一个域下。
+
+## K8s 管理
+
+### 利用 pod preset 设置环境变量
+
+Gitlab每次执行job的时候会直接调度k8s api创建一个新的pod，除非使用自定义的helper容器，否则难以干预pod的创建过程。
+但如果只是设置环境变量，例如默认代理，则可以利用k8s pod preset功能。
+Pod preset默认没有启用，需要在 kubeadm 初始化 k8s 的时候通过 `enable-admission-plugins` 启用该特性：
+
+.kubeadm.conf
+```yaml
+apiServer:
+  extraArgs:
+    runtime-config: settings.k8s.io/v1alpha1=true
+    enable-admission-plugins: PodPreset, ...
+```
+
+然后可以对 Gitlab runner 的 namespace 注入环境变量
+
+.preset.yaml
+```yaml
+apiVersion: settings.k8s.io/v1alpha1
+kind: PodPreset
+metadata:
+  name: http-proxy-env
+spec:
+  env:
+    - name: https_proxy
+      value: "http://proxy:8080"
+    - name: http_proxy
+      value: "http://proxy:8080"
+    - name: HTTPS_PROXY
+      value: "http://proxy:8080"
+    - name: no_proxy
+      value: "minio-service,192.168.0.0/16,10.0.0.0/8,127.0.0.1,kube-apiserver"
+    - name: JAVA_OPTS
+      value: "-Dhttp.proxyHost=proxy -Dhttp.proxyPort=8080 -Dhttp.nonProxyHosts='127.0.0.1|minio-service'"
+
+  volumeMounts:
+    - name: config-volume
+      mountPath: /root/.gradle/gradle.properties
+      subPath: gradle.properties
+  volumes:
+    - name: config-volume
+      configMap:
+        name: gradle-proxy-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gradle-proxy-config
+  namespace: default
+data:
+  gradle.properties: |
+    systemProp.http.proxyHost=proxy
+    systemProp.http.proxyPort=8080
+    #systemProp.http.nonProxyHosts=<csv of exceptions>
+    systemProp.https.proxyHost=proxy
+    systemProp.https.proxyPort=8080
+    #systemProp.https.nonProxyHosts=<csv of exceptions>
+```
+
+### 启用 ingress
+
+前面介绍了利用 ingress 暴露 runner 的服务，这里简单介绍下如何安装ingress。K8s自带的ingress是基于nginx开发的，通过deployment部署在系统中，跟其他的pod没有什么区别，我们还是要通过service访问ingress。
+下面例子安装了ingress并通过 Nodeport 将该ingress暴露出来。
+
+```bash
+# 部署 ingress 和相关权限账号
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.28.0/deploy/static/mandatory.yaml
+# 以 nodeport 形式暴露 service
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.28.0/deploy/static/provider/baremetal/service-nodeport.yaml
+```
+
+
+////
+单节点机器设置脚本，包含跟GCE集成，设置kubeadm.conf参数，安装calico网络
+https://github.com/kelseyhightower/kubeadm-single-node-cluster/blob/master/startup.sh
+////
