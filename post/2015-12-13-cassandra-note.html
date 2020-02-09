@@ -80,7 +80,7 @@
 <p>Chen Hongming &lt;<a href="mailto:chenhm@gmail.com">chenhm@gmail.com</a>&gt;</p>
 </div>
 <div class="paragraph">
-<p>本文的 <a href="http://chenhm.github.io/slides/cassandra/cassandra.html">HTML版</a> 或 <a href="http://chenhm.github.io/slides/cassandra/cassandra.pdf">pdf版</a></p>
+<p>本文的 <a href="https://chenhm.com/slides/cassandra/cassandra.html">HTML版</a> 或 <a href="https://chenhm.com/slides/cassandra/cassandra.pdf">pdf版</a></p>
 </div>
 </div>
 </div>
@@ -192,7 +192,7 @@ RowKey: 1
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="https://www.plantuml.com/plantuml/svg/JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a_NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo-s9vxUhAF3QycYok8K-ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa-sVRDTSrpLyMPNXrNJigVpw0000" alt="JOwn3i8m34JtV8NL6LLgHr2aRZ0miLOC9ZQqeYILux8a NTImS3oXdUwqtLHKPI26XeVWlC0HqW61FsJHh7doy603yJGtuDNZo s9vxUhAF3QycYok8K ZZWp5RO1Q7TX3UUR9KQo0cMoDBijoRaZStwa sVRDTSrpLyMPNXrNJigVpw0000"/>
+<img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iMjdweCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSIgc3R5bGU9IndpZHRoOjQyNHB4O2hlaWdodDoyN3B4O2JhY2tncm91bmQ6I0ZGRkZGRjsiIHZlcnNpb249IjEuMSIgdmlld0JveD0iMCAwIDQyNCAyNyIgd2lkdGg9IjQyNHB4IiB6b29tQW5kUGFuPSJtYWduaWZ5Ij48ZGVmcy8+PGc+PHRleHQgZmlsbD0iIzMzRkYwMiIgZm9udC1mYW1pbHk9IkthaUdlbiBHb3RoaWMgQ04sTWljcm9zb2Z0IFlhSGVpLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQxMyIgeD0iNSIgeT0iMTkiPlRoZXJlIGlzIGFuIGlzc3VlIHdpdGggeW91ciBEb3QvR3JhcGh2aXogaW5zdGFsbGF0aW9uPC90ZXh0PjwvZz48L3N2Zz4=" alt=""/>
 </div>
 </div>
 <div class="paragraph">
@@ -267,11 +267,11 @@ SELECT * FROM note WHERE user = 'user1'; --非法查询</code></pre>
 <li>
 <p>每次只写1份(<code>ConsistencyLevel.ONE</code>)，系统出现了不一致，但只要读取了所有节点(<code>ConsistencyLevel.ALL</code>)，我们还是可以获得最新的数据。注意，要判断哪个节点上的数据是最新的，显然依赖时钟同步，所以C*各个节点必须配置ntp同步，但即使这样也无法精确同步时钟，所以C*在理论上无法保证完美的一致性。不过业务上很少会发生在非常小的时间内（同一机房一般小于1ms）多个客户端从不同节点更新了同一条记录的情况，所以从业务上来看一致性还是有保证的。关于记录选择参考 <a href="http://wiki.apache.org/cassandra/FAQ#clocktie">What happens if two updates are made with the same timestamp?</a></p>
 <div class="paragraph">
-<p>除了时钟同步，我们还可以通过每次都写同一个node的方法保证一致性，这样集群内记录的数据时间就以这个node为准了。对应`LoadBalancingPolicy`策略`new TokenAwarePolicy(new DCAwareRoundRobinPolicy(), false) //一个数据中心内使用同一个node`或`new TokenAwarePolicy(new RoundRobinPolicy(), false) //一个集群内使用同一个node`</p>
+<p>除了时钟同步，我们还可以通过每次都写同一个node的方法保证一致性，这样集群内记录的数据时间就以这个node为准了。对应 <code>LoadBalancingPolicy</code> 策略 <code>new TokenAwarePolicy(new DCAwareRoundRobinPolicy(), false) //一个数据中心内使用同一个node</code> 或 <code>new TokenAwarePolicy(new RoundRobinPolicy(), false) //一个集群内使用同一个node</code></p>
 </div>
 </li>
 <li>
-<p>上面第一种情况对于读的可用性很高，但对于写的可用性很低，第二种情况正好相反，如果我们每次写2份，读2份，那么既保证了一致性，同时读写也都有一定的可用性。这也是C*默认提供的一致性`ConsistencyLevel.QUORUM`, quorum定义为`quorum = (sum_of_replication_factors / 2) + 1`。这也是我们常说的 W + R &gt; N 即可保证一致性。</p>
+<p>上面第一种情况对于读的可用性很高，但对于写的可用性很低，第二种情况正好相反，如果我们每次写2份，读2份，那么既保证了一致性，同时读写也都有一定的可用性。这也是C*默认提供的一致性 <code>ConsistencyLevel.QUORUM</code>, quorum定义为 <code>quorum = (sum_of_replication_factors / 2) + 1</code>。这也是我们常说的 W + R &gt; N 即可保证一致性。</p>
 </li>
 <li>
 <p>牺牲强一致性，读写都为1，获得最好的可用性，由C*通过算法在一段时间后实现最终一致性。</p>
@@ -290,7 +290,7 @@ SELECT * FROM note WHERE user = 'user1'; --非法查询</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>上图显示了12个节点，复制因子为3，一致性级别为QUORUM的读情况，其中node 10是协调者。协调者会对比R1和R3返回的数据，将最新的数据返回给client。如果发现了数据不一致，后台进程还会尝试修复。可以通过表属性`read_repair_chance`设定读修复的比率，但Cassandra 2.0.9及以后的版本不需要读修复。</p>
+<p>上图显示了12个节点，复制因子为3，一致性级别为QUORUM的读情况，其中node 10是协调者。协调者会对比R1和R3返回的数据，将最新的数据返回给client。如果发现了数据不一致，后台进程还会尝试修复。可以通过表属性 <code>read_repair_chance</code> 设定读修复的比率，但Cassandra 2.0.9及以后的版本不需要读修复。</p>
 </div>
 </div>
 <div class="sect3">
@@ -464,7 +464,7 @@ DatastaxConnection.getSession().execute(query);</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>INSERT INTO emp(empid,deptid,address,first_name,last_name) VALUES(102,14,'luoyang','Jane Doe','li') IF NOT EXISTS;
+<pre class="highlight"><code class="language-sql" data-lang="sql">INSERT INTO emp(empid,deptid,address,first_name,last_name) VALUES(102,14,'luoyang','Jane Doe','li') IF NOT EXISTS;
 UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_name='zhang';</code></pre>
 </div>
 </div>
@@ -484,7 +484,7 @@ UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_nam
 <h4 id="_查询过期时间">3.4. 查询过期时间</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>SELECT TTL(last_name)from emp;</code></pre>
+<pre class="highlight"><code class="language-sql" data-lang="sql">SELECT TTL(last_name)from emp;</code></pre>
 </div>
 </div>
 </div>
@@ -492,21 +492,21 @@ UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_nam
 <h4 id="_更新过期时间">3.5. 更新过期时间</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>INSERT INTO emp (empID, deptID, first_name, last_name) VALUES (105, 17, 'miaomiao', 'han') USING TTL 3600;</code></pre>
+<pre class="highlight"><code class="language-sql" data-lang="sql">INSERT INTO emp (empID, deptID, first_name, last_name) VALUES (105, 17, 'miaomiao', 'han') USING TTL 3600;</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>也即，以新的TTL重插一遍数据即可。（指定插入的整条数据的过期时间）</p>
 </div>
 <div class="paragraph">
-<p>或者`UPDATA emp USING TTL 3600 SET last_name='han' where empid=105 and deptid=17;` （指定set指明的数据的过期时间）</p>
+<p>或者 <code>UPDATA emp USING TTL 3600 SET last_name='han' where empid=105 and deptid=17;</code> （指定set指明的数据的过期时间）</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_查询写入时间">3.6. 查询写入时间</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>SELECT WRITETIME(first_name) from emp;</code></pre>
+<pre class="highlight"><code class="language-sql" data-lang="sql">SELECT WRITETIME(first_name) from emp;</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -517,7 +517,7 @@ UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_nam
 <h4 id="_添加columns">3.7. 添加columns</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>ALTER TABLE emp ADD address varchar;</code></pre>
+<pre class="highlight"><code class="language-sql" data-lang="sql">ALTER TABLE emp ADD address varchar;</code></pre>
 </div>
 </div>
 </div>
@@ -525,7 +525,7 @@ UPDATE emp SET address = 'luoyang' WHERE empid = 103 and deptid = 16 IF last_nam
 <h4 id="_更改column数据类型">3.8. 更改column数据类型</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>ALTER TABLE emp ALTER address TYPE text;</code></pre>
+<pre class="highlight"><code class="language-sql" data-lang="sql">ALTER TABLE emp ALTER address TYPE text;</code></pre>
 </div>
 </div>
 </div>

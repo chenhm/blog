@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>基于Kubernetes的Gitlab runner环境搭建(2)</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+     <h1>基于Kubernetes的Gitlab runner环境搭建(2)</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_gitlab_管理">1. Gitlab 管理</a>
+<ul class="sectlevel2">
+<li><a href="#_启用_cache">1.1. 启用 cache</a></li>
+<li><a href="#_debug_ci_job">1.2. Debug CI Job</a></li>
+<li><a href="#_ci_dashboard">1.3. CI dashboard</a></li>
+</ul>
+</li>
+<li><a href="#_k8s_管理">2. K8s 管理</a>
+<ul class="sectlevel2">
+<li><a href="#_利用_pod_preset_设置环境变量">2.1. 利用 pod preset 设置环境变量</a></li>
+<li><a href="#_启用_ingress">2.2. 启用 ingress</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="http://chenhm.com">Chen Hongming</a></p>
+</div>
+<div class="paragraph">
+<p><a href="2018-10-29-run-gitlab-with-k8s">上一篇</a> 我们介绍了如何在kubernetes中安装Gitlab，并利用Kubernetes作为我们runner的执行环境，建立完整的CI环境。
+这篇我们介绍下Gitlab的一些使用技巧以及对k8s的相关配置。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_gitlab_管理">1. Gitlab 管理</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_启用_cache">1.1. 启用 cache</h3>
+<div class="paragraph">
+<p>Gitlab 使用 kubernetes runner 的时候，每次执行job都会创建一组新的容器，但有时候我们希望保留之前的执行结果，
+比如使用 maven 或 npm 的本地仓库可以大大加快 build 过程，这种情况我们可以启用 CI Cache 功能。
+Cache 功能会将指定目录打成zip压缩包，上传到 AWS S3 或 Google GCS 兼容服务上，使用相同 cache id 的job在下次运行的时候会从S3服务获取压缩包，
+解压到指定目录，从而实现不同job或同一job在多次执行之间的文件共享。</p>
+</div>
+<div class="paragraph">
+<p>首先我们需要配置一个S3兼容服务，这里我们使用 <a href="https://minio.io/">MINIO</a> 并使用本地磁盘作为实际存储空间。</p>
+</div>
+<div class="listingblock">
+<div class="title">minio-deployment.yaml</div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  # This name uniquely identifies the Deployment
+  name: minio-deployment
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        # Label is used as selector in the service.
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        # Pulls the default Minio image from Docker Hub
+        image: minio/minio
+        args:
+        - server
+        - /storage
+        env:
+        # Minio access key and secret key
+        - name: MINIO_ACCESS_KEY
+          value: "DJTMMHJ9RPRZ93CSUV8M"
+        - name: MINIO_SECRET_KEY
+          value: "kKMtnwLnoakOVewv5X1ybrscLdViUdSs7nDvVFLl"
+        ports:
+        - containerPort: 9000
+        # Mount the volume into the pod
+        volumeMounts:
+        - name: storage # must match the volume name, above
+          mountPath: "/storage"
+      volumes:
+      - name: storage
+        hostPath:
+          path: /mnt/storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30900
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: minio</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>服务创建成功后通过 <a href="http://host:30900" class="bare">http://host:30900</a> 可以访问 minio 服务，使用上面的 ACCESS_KEY 和 SECRET_KEY 登录，手工创建名称为 gitlab 的 bucket。
+修改之前的 runner 注册脚本，增加 cache 相关的配置。</p>
+</div>
+<div class="listingblock">
+<div class="title">gitlab-runner.yaml</div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">- name: CACHE_TYPE
+  value: "s3"
+- name: CACHE_PATH
+  value: "cache"
+- name: CACHE_SHARED
+  value: "false"
+- name: CACHE_S3_SERVER_ADDRESS
+  value: "host:30900"
+- name: CACHE_S3_ACCESS_KEY
+  value: "DJTMMHJ9RPRZ93CSUV8M"
+- name: CACHE_S3_SECRET_KEY
+  value: "kKMtnwLnoakOVewv5X1ybrscLdViUdSs7nDvVFLl"
+- name: CACHE_S3_BUCKET_NAME
+  value: "gitlab"     # 跟手工创建的 bucket 名称一致
+- name: CACHE_S3_INSECURE
+  value: "true"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>现在我们可以编写 pipeline 验证一下 cache 功能。新建空项目放入如下 CI 脚本，触发 pipeline 执行。</p>
+</div>
+<div class="listingblock">
+<div class="title"><em>.gitlab-ci.yml</em></div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">image: alpine
+
+stages:
+- build
+- test
+
+before_script:
+- echo "Hello"
+
+job A:
+  stage: build
+  script:
+  - mkdir -p vendor/
+  - echo "build job id: ${CI_JOB_ID}" &gt; vendor/hello.txt
+  cache:
+    key: build-cache
+    paths:
+    - vendor/
+  after_script:
+  - echo "World"
+
+job B:
+  stage: test
+  script:
+  - cat vendor/hello.txt
+  cache:
+    key: build-cache
+    paths:
+    - vendor/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在 job 的执行窗口可以看到类似如下的输出，说明cache已经正常工作，也可以去 MINIO 的 web 界面查看 cache 文件。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Creating cache build-cache...
+vendor/: found 2 matching files
+Uploading cache.zip to http://host:30900/gitlab/cache/runner/f007ff8d/project/15/build-cache
+Created cache</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_debug_ci_job">1.2. Debug CI Job</h3>
+<div class="sect3">
+<h4 id="_gitlab_runner_exec">1.2.1. gitlab-runner exec</h4>
+<div class="paragraph">
+<p>CI Job 执行肯定会遇到执行失败需要调试的情况，Gitlab 允许手工执行 <code>gitlab-runner exec &lt;EXECUTOR TYPE&gt; &lt;JOB NAME&gt;</code> 来运行本地 pipeline 文件中的指定 job，
+这个功能是完全运行在本地环境的，不需要连接 Gitlab server，对于编写调试 pipeline 有很大帮助。</p>
+</div>
+<div class="paragraph">
+<p><code>gitlab-runner exec</code> 的使用非常简单，以运行 docker executor 为例：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>找一台已经装了 docker 的机器，根据 <a href="https://docs.gitlab.com/runner/install/" class="bare">https://docs.gitlab.com/runner/install/</a> 安装二进制文件即可，无需 install 为 service 或 register。</p>
+</li>
+<li>
+<p><code>git clone</code> 项目到本地，注意项目里面应该有 <code>.gitlab-ci.yml</code> 脚本</p>
+</li>
+<li>
+<p>进入项目目录，执行 <code>gitlab-runner exec docker &lt;JOB NAME&gt;</code> 即可</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>但 <code>gitlab-runner exec</code> 也有很多 <a href="https://docs.gitlab.com/runner/commands/#limitations-of-gitlab-runner-exec">限制条件</a>, 例如无法调试完整的stage，只能调试 job，不支持 job 依赖关系等等。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_debug_interactive_mode">1.2.2. Debug interactive mode</h4>
+<div class="paragraph">
+<p>Gitlab 提供了一个强大的基于 web 的交互终端，可以在执行job的时候直接登录该pod的控制台，调试pipeline，文档可以参考 <a href="https://docs.gitlab.com/ee/ci/interactive_web_terminal/">Interactive Web Terminals</a>。
+这个功能需要对 runner 做一些配置，这里我们利用 ingress 将 runner 暴露到集群外部，并且通过 <code>advertise_address</code> 参数告诉 gitlab server 如何连接我们的runner。</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>通过 initContainers 设置 runner session_server 参数，注意 <code>advertise_address</code> 是可以从 gitlab server 直连过来的地址。</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">initContainers:
+  - name: init-runner-volume
+    image: alpine
+    imagePullPolicy: Never
+    command: ["sh", "-c"]
+    args:
+    - |
+      sed -i '/\[session_server\]/a \ \ listen_address = "0.0.0.0:8093"\n\ \ advertise_address = "runner.cilab.net:443"' /etc/gitlab-runner/config.toml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>将 runner 通过 ingress 暴露出来，注意修改 host 为自己的域名，并且内部 DNS 可以通过该域名找到 ingress controller。</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-runner-session-server
+spec:
+  ports:
+  - port: 443
+    targetPort: 8093
+    protocol: TCP
+  selector:
+    app: gitlab-runner
+---
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: gitlab-runner
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    protocol: TCP
+spec:
+  tls:
+  - hosts:
+    - runner.cilab.net
+  rules:
+  - host: runner.cilab.net
+    http:
+      paths:
+      - path: "/"
+        backend:
+          serviceName: gitlab-runner-session-server
+          servicePort: 443</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_暴露调试端口">1.2.3. 暴露调试端口</h4>
+<div class="paragraph">
+<p>类似在服务器上的Java远程调试，Gitlab job 执行的时候我们也可以远程调试，唯一的区别是需要先通过 <code>kubectl port-forward</code> 将执行 job 的 pod 相关端口映射回本地。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ci_dashboard">1.3. CI dashboard</h3>
+<div class="paragraph">
+<p>Gitlab 虽然内置了 dashboard，但给出的信息较少，我们可以部署一套 <a href="https://github.com/timoschwarzer/gitlab-monitor">gitlab-monitor</a> 监控pipeline的执行情况。
+gitlab-monitor 通过JavaScript调用 gitlab api 抓取项目下的pipeline列表和执行情况，部署的时候要注意api访问的跨域问题，建议利用 <a href="https://docs.gitlab.com/ee/user/project/pages/">Gitlab Pages</a> 将 dashboard 和 gitlab server 部署在同一个域下。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_k8s_管理">2. K8s 管理</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_利用_pod_preset_设置环境变量">2.1. 利用 pod preset 设置环境变量</h3>
+<div class="paragraph">
+<p>Gitlab每次执行job的时候会直接调度k8s api创建一个新的pod，除非使用自定义的helper容器，否则难以干预pod的创建过程。
+但如果只是设置环境变量，例如默认代理，则可以利用k8s pod preset功能。
+Pod preset默认没有启用，需要在 kubeadm 初始化 k8s 的时候通过 <code>enable-admission-plugins</code> 启用该特性：</p>
+</div>
+<div class="listingblock">
+<div class="title">kubeadm.conf</div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">apiServer:
+  extraArgs:
+    runtime-config: settings.k8s.io/v1alpha1=true
+    enable-admission-plugins: PodPreset, ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>然后可以对 Gitlab runner 的 namespace 注入环境变量</p>
+</div>
+<div class="listingblock">
+<div class="title">preset.yaml</div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">apiVersion: settings.k8s.io/v1alpha1
+kind: PodPreset
+metadata:
+  name: http-proxy-env
+spec:
+  env:
+    - name: https_proxy
+      value: "http://proxy:8080"
+    - name: http_proxy
+      value: "http://proxy:8080"
+    - name: HTTPS_PROXY
+      value: "http://proxy:8080"
+    - name: no_proxy
+      value: "minio-service,192.168.0.0/16,10.0.0.0/8,127.0.0.1,kube-apiserver"
+    - name: JAVA_OPTS
+      value: "-Dhttp.proxyHost=proxy -Dhttp.proxyPort=8080 -Dhttp.nonProxyHosts='127.0.0.1|minio-service'"
+
+  volumeMounts:
+    - name: config-volume
+      mountPath: /root/.gradle/gradle.properties
+      subPath: gradle.properties
+  volumes:
+    - name: config-volume
+      configMap:
+        name: gradle-proxy-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gradle-proxy-config
+  namespace: default
+data:
+  gradle.properties: |
+    systemProp.http.proxyHost=proxy
+    systemProp.http.proxyPort=8080
+    #systemProp.http.nonProxyHosts=&lt;csv of exceptions&gt;
+    systemProp.https.proxyHost=proxy
+    systemProp.https.proxyPort=8080
+    #systemProp.https.nonProxyHosts=&lt;csv of exceptions&gt;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_启用_ingress">2.2. 启用 ingress</h3>
+<div class="paragraph">
+<p>前面介绍了利用 ingress 暴露 runner 的服务，这里简单介绍下如何安装ingress。K8s自带的ingress是基于nginx开发的，通过deployment部署在系统中，跟其他的pod没有什么区别，我们还是要通过service访问ingress。
+下面例子安装了ingress并通过 Nodeport 将该ingress暴露出来。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash"># 部署 ingress 和相关权限账号
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.28.0/deploy/static/mandatory.yaml
+# 以 nodeport 形式暴露 service
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.28.0/deploy/static/provider/baremetal/service-nodeport.yaml</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/keep-markup/prism-keep-markup.min.js" integrity="sha256-jHeLW+quLKoSpBFisYif0SQf9Z20AKgmKb2vcdWehJI=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-39495276-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-39495276-1');
+</script>
+
+</body>
+</html>
