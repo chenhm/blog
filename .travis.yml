@@ -6,6 +6,11 @@ language: java
 
 sudo: false
 
+addons:
+  apt:
+    packages:
+      - graphviz
+
 before_script:
   - git config --global user.name "chenhm"
   - git config --global user.email "chenhm@gmail.com"
