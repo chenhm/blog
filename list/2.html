@@ -28,79 +28,60 @@
         <search-bar v-if="isPageList"></search-bar>
     </header>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js" integrity="sha256-sTurDi2etLN9CpnUIoCC9y5iynb2qr/uo6QJqzoO7mA=" crossorigin="anonymous"></script>
 <section class="list-view">
     <ol v-else class="list">
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2015-11-05 | 4 年前</time>
-                <a href="/post/2015-11-05-wireshark-ssl-other-way" class="item-title">
-                    Wireshark解密SSL的另一种方法
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2014-10-12 | 5 年前</time>
-                <a href="/post/2014-10-12-spdy" class="item-title">
-                    SPDY简介
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-10-09 | 6 年前</time>
-                <a href="/post/2013-10-09-golang-cross-compiler" class="item-title">
-                    Go语言交叉编译环境搭建
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-07-31 | 6 年前</time>
-                <a href="/post/2013-07-31-create_slideshow_without_ppt" class="item-title">
-                    非PPT的演示文档工具
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-04-21 | 6 年前</time>
-                <a href="/post/2013-04-21-apf-fail2ban" class="item-title">
-                    使用apf和fail2ban保护Linux
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-04-05 | 6 年前</time>
-                <a href="/post/2013-04-05-vpn2-ipsec-debian" class="item-title">
-                    搭建Cisco IPSec VPN服务
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-04-05 | 6 年前</time>
-                <a href="/post/2013-04-05-vpn1-pptp-debian" class="item-title">
-                    在debian上搭建基于pptp的vpn服务
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-04-04 | 6 年前</time>
-                <a href="/post/2013-04-04-dropbear" class="item-title">
-                    使用dropbear做ssh转发服务
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-04-02 | 6 年前</time>
-                <a href="/post/2013-04-02-Discuz-migrate" class="item-title">
-                    备份迁移Discuz! X2.5
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2013-03-31 | 6 年前</time>
-                <a href="/post/2013-03-31-vnstat" class="item-title">
-                    通过vnstat分析网卡流量
-                </a>
-            </li>
-        
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2015-12-13 | <span class="timeago" datetime="2015-12-13"></span></time>
+            <a href="/post/2015-12-13-cassandra-note" class="item-title">Cassandra Note</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2015-11-05 | <span class="timeago" datetime="2015-11-05"></span></time>
+            <a href="/post/2015-11-05-wireshark-ssl-other-way" class="item-title">Wireshark解密SSL的另一种方法</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2014-10-12 | <span class="timeago" datetime="2014-10-12"></span></time>
+            <a href="/post/2014-10-12-spdy" class="item-title">SPDY简介</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-10-09 | <span class="timeago" datetime="2013-10-09"></span></time>
+            <a href="/post/2013-10-09-golang-cross-compiler" class="item-title">Go语言交叉编译环境搭建</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-07-31 | <span class="timeago" datetime="2013-07-31"></span></time>
+            <a href="/post/2013-07-31-create_slideshow_without_ppt" class="item-title">非PPT的演示文档工具</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-04-21 | <span class="timeago" datetime="2013-04-21"></span></time>
+            <a href="/post/2013-04-21-apf-fail2ban" class="item-title">使用apf和fail2ban保护Linux</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-04-05 | <span class="timeago" datetime="2013-04-05"></span></time>
+            <a href="/post/2013-04-05-vpn2-ipsec-debian" class="item-title">搭建Cisco IPSec VPN服务</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-04-05 | <span class="timeago" datetime="2013-04-05"></span></time>
+            <a href="/post/2013-04-05-vpn1-pptp-debian" class="item-title">在debian上搭建基于pptp的vpn服务</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-04-04 | <span class="timeago" datetime="2013-04-04"></span></time>
+            <a href="/post/2013-04-04-dropbear" class="item-title">使用dropbear做ssh转发服务</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2013-04-02 | <span class="timeago" datetime="2013-04-02"></span></time>
+            <a href="/post/2013-04-02-Discuz-migrate" class="item-title">备份迁移Discuz! X2.5</a>
+        </li>
+    
     </ol>
 
     <div id="post-pagination" class="paginator" v-if="pages !== 0">
@@ -112,9 +93,19 @@
     
         <a href="/list/3" class="">3</a>
     
-        <a href="/list/3">后页&gt;</a>(共 29 篇)
+        <a href="/list/3">后页&gt;</a>(共 30 篇)
     </div>
 </section>
+<script>
+const ZH_CN = ['秒', '分', '时', '天', '周', '月', '年'];
+var locale = function(diff, idx, totalSec) {
+  if (idx === 0) return ['刚刚', '片刻后'];
+  const unit = ZH_CN[~~(idx / 2)];
+  return [`${diff} ${unit}前`, `${diff} ${unit}后`];
+};
+timeago.register('zh_CN', locale);
+timeago.render(document.querySelectorAll('.timeago'),'zh_CN');timeago.cancel();
+</script>
 <footer class="footer">
     Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
 </footer>

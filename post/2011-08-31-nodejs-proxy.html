@@ -31,7 +31,7 @@
 <section class="post-view">
     <article>
      
-         <h1 class="post-title">             基于node.js的简单代理         </h1>
+         <h1 class="post-title">基于node.js的简单代理</h1>
      
      <p>一直在用iptables进行代理转发，效率很高，但是linux的内核似乎不是很稳定，<code>/proc/net/nf_conntrack</code>中看到的连接常常是已经挂死的。而且linux下也没有类似rmsock的命令清理连接。这两天看node.js，发现这是个做代理的好工具，实现非常简单，总共40行代码搞定。</p>
 <pre><code class="language-javascript">var net = require('net'), util=require('util');

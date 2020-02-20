@@ -28,79 +28,60 @@
         <search-bar v-if="isPageList"></search-bar>
     </header>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js" integrity="sha256-sTurDi2etLN9CpnUIoCC9y5iynb2qr/uo6QJqzoO7mA=" crossorigin="anonymous"></script>
 <section class="list-view">
     <ol v-else class="list">
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2019-04-20 | 9 月前</time>
-                <a href="/post/2019-04-20-kubernetes" class="item-title">
-                    Kubernetes 入门
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2019-01-30 | 1 年前</time>
-                <a href="/post/2019-01-30-kafka-hands-on" class="item-title">
-                    Kafka Hands-on
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2018-12-05 | 1 年前</time>
-                <a href="/post/2018-12-05-debuging-java-memory-leak" class="item-title">
-                    分析 Java 内存泄漏
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2018-10-31 | 1 年前</time>
-                <a href="/post/2018-10-31-run-gitlab-with-k8s-2" class="item-title">
-                    基于Kubernetes的Gitlab runner环境搭建(2)
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2018-10-29 | 1 年前</time>
-                <a href="/post/2018-10-29-run-gitlab-with-k8s" class="item-title">
-                    基于Kubernetes的Gitlab runner环境搭建
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2018-05-13 | 1 年前</time>
-                <a href="/post/2018-05-13-enhance-your-java-spring-application-with-r-data-science" class="item-title">
-                    [译]利用R数据科学增强Java Spring应用
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2018-01-04 | 2 年前</time>
-                <a href="/post/2018-01-04-spring-cloud-overview" class="item-title">
-                    Spring Cloud 概览
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2017-12-25 | 2 年前</time>
-                <a href="/post/2017-12-25-distributed-systems-theory-for-the-distributed-systems-engineer" class="item-title">
-                    [转][译]面向分布式系统工程师的分布式系统理论
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2016-08-16 | 3 年前</time>
-                <a href="/post/2016-08-16-from-spring-to-spring-boot" class="item-title">
-                    From Spring to Spring Boot
-                </a>
-            </li>
-        
-            <li class="list-item">
-                <time pubdate="pubdate" class="item-date">2015-12-13 | 4 年前</time>
-                <a href="/post/2015-12-13-cassandra-note" class="item-title">
-                    Cassandra Note
-                </a>
-            </li>
-        
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2020-02-19 | <span class="timeago" datetime="2020-02-19"></span></time>
+            <a href="/post/2020-02-19-kubernetes-lb" class="item-title">Kubernetes 负载均衡机制</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2019-04-20 | <span class="timeago" datetime="2019-04-20"></span></time>
+            <a href="/post/2019-04-20-kubernetes" class="item-title">Kubernetes 入门</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2019-01-30 | <span class="timeago" datetime="2019-01-30"></span></time>
+            <a href="/post/2019-01-30-kafka-hands-on" class="item-title">Kafka Hands-on</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2018-12-05 | <span class="timeago" datetime="2018-12-05"></span></time>
+            <a href="/post/2018-12-05-debuging-java-memory-leak" class="item-title">分析 Java 内存泄漏</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2018-10-31 | <span class="timeago" datetime="2018-10-31"></span></time>
+            <a href="/post/2018-10-31-run-gitlab-with-k8s-2" class="item-title">基于Kubernetes的Gitlab runner环境搭建(2)</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2018-10-29 | <span class="timeago" datetime="2018-10-29"></span></time>
+            <a href="/post/2018-10-29-run-gitlab-with-k8s" class="item-title">基于Kubernetes的Gitlab runner环境搭建</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2018-05-13 | <span class="timeago" datetime="2018-05-13"></span></time>
+            <a href="/post/2018-05-13-enhance-your-java-spring-application-with-r-data-science" class="item-title">[译]利用R数据科学增强Java Spring应用</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2018-01-04 | <span class="timeago" datetime="2018-01-04"></span></time>
+            <a href="/post/2018-01-04-spring-cloud-overview" class="item-title">Spring Cloud 概览</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2017-12-25 | <span class="timeago" datetime="2017-12-25"></span></time>
+            <a href="/post/2017-12-25-distributed-systems-theory-for-the-distributed-systems-engineer" class="item-title">[转][译]面向分布式系统工程师的分布式系统理论</a>
+        </li>
+    
+        <li class="list-item">
+            <time pubdate="pubdate" class="item-date">2016-08-16 | <span class="timeago" datetime="2016-08-16"></span></time>
+            <a href="/post/2016-08-16-from-spring-to-spring-boot" class="item-title">From Spring to Spring Boot</a>
+        </li>
+    
     </ol>
 
     <div id="post-pagination" class="paginator" v-if="pages !== 0">
@@ -112,9 +93,19 @@
     
         <a href="/list/3" class="">3</a>
     
-        <a href="/list/2">后页&gt;</a>(共 29 篇)
+        <a href="/list/2">后页&gt;</a>(共 30 篇)
     </div>
 </section>
+<script>
+const ZH_CN = ['秒', '分', '时', '天', '周', '月', '年'];
+var locale = function(diff, idx, totalSec) {
+  if (idx === 0) return ['刚刚', '片刻后'];
+  const unit = ZH_CN[~~(idx / 2)];
+  return [`${diff} ${unit}前`, `${diff} ${unit}后`];
+};
+timeago.register('zh_CN', locale);
+timeago.render(document.querySelectorAll('.timeago'),'zh_CN');timeago.cancel();
+</script>
 <footer class="footer">
     Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
 </footer>
