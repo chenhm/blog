@@ -14,7 +14,7 @@ Gwen Shapira，大腕级的解决方案架构师（SA），如今Cloudera的全�
 
 在这种情况下，一知半解(a little theory)并不会是一件多危险的事情。因此我尝试整理一个列表，罗列出作为一个分布式系统工程师的我认为能够直接应用于我日常工作的一些基本概念；或者让分布式系统工程师完全有能力设计一个新系统的“筹码”。如果你认为我漏掉了一些东西，请联系我。
 
-### 入门第一步
+## 入门第一步
 以下4篇材料出色地解释了构建分布式系统会遇到的一些挑战，共同概述了一系列分布式系统工程师必须要解决的技术上的难题，为之后章节中更深入的研究做好准备。
 
 * http://book.mixu.net/distsys/[好玩又实在的分布式系统理论]是一本简短的书籍，其内容覆盖了分布式系统领域的一些基本议题，包括时间的作用及不同的复制策略。 《Distributed Systems for Fun and Profit》
@@ -22,7 +22,7 @@ Gwen Shapira，大腕级的解决方案架构师（SA），如今Cloudera的全�
 * http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.41.7628[分布式系统研究综述报告] - 一篇经典的论文，解释了为什么不能将所有远程交互都模拟成和本地对象一样。《A Note on Distributed Systems》
 * http://en.wikipedia.org/wiki/Fallacies_of_Distributed_Computing[关于分布式计算的若干谬论] - 分布式计算方面的8点谬论，提醒系统设计者可能会忘记的几类事情。《The fallacies of distributed computing》
 
-### 失败和时间
+## 失败和时间
 分布式系统工程师需要面对的许多困难最终都可以归咎于两个潜在的原因：
 
 * 进程可能会失败
@@ -37,7 +37,7 @@ Gwen Shapira，大腕级的解决方案架构师（SA），如今Cloudera的全�
 * 单个失败发生的可能性对于我们实现正确的分布式系统到底会有多大的影响（请阅读下面关于FLP结果的笔记）？
 * 不同的时间模型：同步、部分同步和异步（若我找到好的参考文献会添加链接）
 
-### 容错的基本矛盾
+## 容错的基本矛盾
 一个系统，若要不降级而容忍某些错误的发生，就必须能够好像那些错误没有发生一样地运作。这通常意味着系统的这些部分必须能够冗余地工作，但是非绝对必要地做更多的工作通常会在性能和资源耗用方面产生一些消耗。这是为系统添加容错带来的基本矛盾。
 
 你应该知道：
@@ -46,7 +46,7 @@ Gwen Shapira，大腕级的解决方案架构师（SA），如今Cloudera的全�
 * 关于 http://the-paper-trail.org/blog/consensus-protocols-two-phase-commit/[两阶段提交]、 http://the-paper-trail.org/blog/consensus-protocols-three-phase-commit/[三阶段提交]和 http://the-paper-trail.org/blog/consensus-protocols-paxos/[Paxos]算法，以及为什么它们有不同的容错性质。
 * 最终一致性，及其他技术是如何以弱化对系统行为的保证为代价来尝试避免这种矛盾的。这篇 http://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf[Dynamo论文] 是一个很好的起点，同时Pat Helland的经典之作 http://www.ics.uci.edu/~cs223/papers/cidr07p15.pdf[Life Beyond Transactions]也是必读的。
 
-### 基本的原语
+## 基本的原语
 分布式系统中很少有大家一致认同的基本构建块，但越来越多地在出现。你应该以下的问题是什么，以及在哪可以找到它们的解决方案：
 
 * Leader选举(leader election)（例如 http://en.wikipedia.org/wiki/Bully_algorithm[Bully算法]）
@@ -54,7 +54,7 @@ Gwen Shapira，大腕级的解决方案架构师（SA），如今Cloudera的全�
 * 共识（阅读上文提到的关于2PC和Paxos的博文）
 * 分布式状态机复制（看看 http://en.wikipedia.org/wiki/State_machine_replication[Wikipedia]就可以，但 http://research.microsoft.com/en-us/um/people/blampson/58-Consensus/Acrobat.pdf[Lampson]的论文更权威，只是枯燥了点）。
 
-### 基础结论
+## 基础结论
 某些客观事实是需要内化于心的，以下是几个关键点（a flavour）（当然还有更多）：
 
 * 如果进程之间可能丢失某些消息，那么不可能在实现一致性存储的同时能响应所有的请求。这就是 http://lpd.epfl.ch/sgilbert/pubs/BrewersConjecture-SigAct.pdf[CAP定理]。
@@ -62,7 +62,7 @@ Gwen Shapira，大腕级的解决方案架构师（SA），如今Cloudera的全�
 建议：确实没有必要理解其证明。
 * 一般而言，消息交互少于两轮是不可能达成共识(Consensus)。
 
-### 真实系统
+## 真实系统
 最重要的练习是重复地阅读新兴的、真实系统的描述，并尝试评价它们的设计决策。一遍又一遍地这样去做。一些建议：
 
 Google:

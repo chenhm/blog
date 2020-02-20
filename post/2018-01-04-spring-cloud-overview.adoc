@@ -137,7 +137,7 @@ public interface NamesFeignClient {
 #### Hystrix Dashboard
 一旦达到熔断条件，service 会直接调用 fallback 上的 mock 方法，不经过 SD、LB 等模块，所以 API 调用统计只能在断路器这个层面上实现。Hystrix 提供了子项目 https://github.com/Netflix/Hystrix/wiki/Dashboard[Hystrix Dashboard] 用于呈现 API 调用监控。
 
-image::https://raw.githubusercontent.com/wiki/Netflix/Hystrix/images/dashboard-example-1280.png[hystrix-dashboard-netflix-api-example]
+image::images/dashboard-example-1280.png[hystrix-dashboard-netflix-api-example]
 
 启用 Hystrix Dashboard 也再次体现了 Spring cloud 基于注解的极简接口。
 
@@ -288,5 +288,5 @@ Distributed message	No	Bus
 - https://mp.weixin.qq.com/s/hHzDa1T_UKPB97ttFRaDCQ[Service Mesh 时代的选边与站队]
 - https://www.kubernetes.org.cn/2737.html[Kubernetes，微服务以及 Service Mesh]
 - http://bit.ly/8stepsawesome[8 Steps to Becoming Awesome with Kubernetes]
-- https://medium.com/@DockerTurtle/service-mesh-the-nervous-system-of-microservices-9393ed1ffa5c["Service mesh" -- the Nervous system of Microservices]
+- https://medium.com/@DockerTurtle/service-mesh-the-nervous-system-of-microservices-9393ed1ffa5c["Service mesh" - the Nervous system of Microservices]
 - https://content.pivotal.io/ebooks/migrating-to-cloud-native-application-architectures[Migrating to Cloud Native Application Architectures] by Matt Stine (https://github.com/rootsongjc/migrating-to-cloud-native-application-architectures[中文版])
