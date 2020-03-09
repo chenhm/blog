@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>Netty 简介</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, user-scalable=no"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="/static/build.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
+</head>
+<body>
+<div id='app'>
+    <header class="header">
+        <div class="container">
+            <!--start: Navigation -->
+            <a href="/" class="brand">On the Road</a>
+<!--            <ul class="nav">-->
+<!--                <li><a href="/list/">Blogs</a></li>-->
+<!--                <li><a href="/slides/">Slides</a></li>-->
+<!--                <li><a href="/about/">About</a></li>-->
+<!--            </ul>-->
+        </div>
+        <!--end: Navigation -->
+        <div style="clear: both"></div>
+        <search-bar v-if="isPageList"></search-bar>
+    </header>
+
+<section class="post-view">
+    <article>
+     
+     <h1>Netty 简介</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_核心概念">1. 核心概念</a>
+<ul class="sectlevel2">
+<li><a href="#_channel">1.1. Channel</a></li>
+<li><a href="#_channel_pipeline">1.2. Channel Pipeline</a></li>
+<li><a href="#_events_handlers">1.3. Events &amp; Handlers</a></li>
+<li><a href="#_encoders_decoders">1.4. Encoders &amp; Decoders</a></li>
+<li><a href="#_future">1.5. Future</a></li>
+</ul>
+</li>
+<li><a href="#_服务端应用">2. 服务端应用</a>
+<ul class="sectlevel2">
+<li><a href="#_server初始化">2.1. Server初始化</a></li>
+<li><a href="#_消息编码与解码">2.2. 消息编码与解码</a></li>
+<li><a href="#_异常处理">2.3. 异常处理</a></li>
+</ul>
+</li>
+<li><a href="#_客户端应用">3. 客户端应用</a>
+<ul class="sectlevel2">
+<li><a href="#_client初始化">3.1. Client初始化</a></li>
+<li><a href="#_事件处理">3.2. 事件处理</a></li>
+</ul>
+</li>
+<li><a href="#_内部机制">4. 内部机制</a>
+<ul class="sectlevel2">
+<li><a href="#_线程模型">4.1. 线程模型</a></li>
+<li><a href="#_bytebuf">4.2. ByteBuf</a></li>
+<li><a href="#_native_epoll">4.3. Native epoll</a></li>
+</ul>
+</li>
+<li><a href="#_参考">参考</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="https://chenhm.com">Chen Hongming</a></p>
+</div>
+<div class="paragraph">
+<p>Netty 是个高性能NIO框架，它通过事件处理模型，隐藏了异步处理的细节，使我们在应用层仅需要关注消息对象的处理，而不用关心调度过程。同时 Netty 提供了很多协议栈的实现，大大简化了网络相关应用的开发难度。本文是Netty的入门指南，着重在讲清Netty和异步网络接口的基本概念，避免入坑。</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+Netty 当前稳定版是 4.x，而 5.x 是个废弃的版本。 <a href="https://github.com/netty/netty/issues/4466">作者说明</a>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_核心概念">1. 核心概念</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_channel">1.1. Channel</h3>
+<div class="paragraph">
+<p>Channel代表一条传输链路，其底层可以是各种传输层协议，UDP、TCP、SCTP等等，可以在channel上进行读写操作。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_channel_pipeline">1.2. Channel Pipeline</h3>
+<div class="paragraph">
+<p>Netty认为数据流可以被多个 Handler 链式处理，每个 handler 接受前一个 handler 处理的结果，并输出给下个 handler，这个流程关系就是 pipeline。</p>
+</div>
+<div class="paragraph">
+<p>例如我们处理HTTPS请求的过程大致如下：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>将加密数据解码为字节流</p>
+</li>
+<li>
+<p>对字节流解析出http消息</p>
+</li>
+<li>
+<p>如果是chunked类型的http消息，我们可以做一次聚合</p>
+</li>
+<li>
+<p>业务处理并返回response对象</p>
+</li>
+<li>
+<p>将返回对象序列化为字节流</p>
+</li>
+<li>
+<p>SSL加密后返回给客户端</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iMjI4cHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDoxMDMwcHg7aGVpZ2h0OjIyOHB4OyIgdmVyc2lvbj0iMS4xIiB2aWV3Qm94PSIwIDAgMTAzMCAyMjgiIHdpZHRoPSIxMDMwcHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+PCFbQ0RBVEFbdGV4dHtmb250LWZhbWlseTpLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmfV1dPjwvc3R5bGU+PGRlZnMvPjxnPjwhLS1NRDU9W2RmMGI0OWIzYmNlYTRhMTAzNGU3ZTU2YTk2MDhiNDcxXQpjbHVzdGVyIENoYW5uZWwtLT48cG9seWdvbiBmaWxsPSIjRjVGMkYwIiBwb2ludHM9IjE5MywyNCwxOTMsMjQuMjEwMiwyMDIuOTUxOCwyMy41ODU3LDIxMi45MDM2LDI0LjE5MzMsMjIyLjg1NTQsMjQuMzk5NywyMzIuODA3MiwyMy4yODY2LDI0Mi43NTksMjMuOTIyMywyNTIuNzEwOCwyMy41NzM1LDI2Mi42NjI3LDIzLjYxNjUsMjcyLjYxNDUsMjMuOTMxOCwyODIuNTY2MywyMy4zMDg2LDI5Mi41MTgxLDI0LjU1MzYsMzAyLjQ2OTksMjMuMzY5NywzMTIuNDIxNywyMy44MDIyLDMyMi4zNzM1LDI0LjQzMTksMzMyLjMyNTMsMjMuOTE0MiwzNDIuMjc3MSwyNC4wNjgyLDM1Mi4yMjg5LDIzLjk2ODEsMzYyLjE4MDcsMjQuMTc4NSwzNzIuMTMyNSwyNC4yMzkxLDM4Mi4wODQzLDI0LjU4NTcsMzkyLjAzNjEsMjQuNjcxMSw0MDEuOTg4LDI0LjY3OTMsNDExLjkzOTgsMjQuMjU0Niw0MjEuODkxNiwyNC40NjM2LDQzMS44NDM0LDI0LjcwMjIsNDQxLjc5NTIsMjMuMjc4OCw0NTEuNzQ3LDI0LjY3ODUsNDYxLjY5ODgsMjMuNzAzNSw0NzEuNjUwNiwyNC41MzM4LDQ4MS42MDI0LDIzLjUwNSw0OTEuNTU0MiwyMy45MzE1LDUwMS41MDYsMjQuNzQxNiw1MTEuNDU3OCwyMy45NTEzLDUyMS40MDk2LDI0LjEwNTMsNTMxLjM2MTQsMjQuMzM4Niw1NDEuMzEzMywyNC40MTYyLDU1MS4yNjUxLDIzLjk5NjEsNTYxLjIxNjksMjQuMjg3Miw1NzEuMTY4NywyMy40Mjc2LDU4MS4xMjA1LDI0LjI4NDQsNTkxLjA3MjMsMjQuNTQ4Miw2MDEuMDI0MSwyNC40NDQ1LDYxMC45NzU5LDI0LjYxMyw2MjAuOTI3NywyMy41MTY5LDYzMC44Nzk1LDIzLjM0NzgsNjQwLjgzMTMsMjMuMzc4Niw2NTAuNzgzMSwyMy45NDExLDY2MC43MzQ5LDIzLjgwMzUsNjcwLjY4NjcsMjQuNjgxNCw2ODAuNjM4NiwyMy44MjUzLDY5MC41OTA0LDIzLjY1NjksNzAwLjU0MjIsMjQuMjI4Myw3MTAuNDk0LDIzLjMzMzIsNzIwLjQ0NTgsMjMuNDgwOSw3MzAuMzk3NiwyNC42NDksNzQwLjM0OTQsMjQuNDM1Nyw3NTAuMzAxMiwyNC43MzQ1LDc2MC4yNTMsMjMuNjc4Miw3NzAuMjA0OCwyNC4zMTkyLDc4MC4xNTY2LDI0LjU5MDQsNzkwLjEwODQsMjMuNTI3Niw4MDAuMDYwMiwyMy45MDQxLDgxMC4wMTIsMjQuMTI2LDgxOS45NjM5LDI0LjY1MTgsODI5LjkxNTcsMjMuOTk1OCw4MzkuODY3NSwyNC40NjI2LDg0OS44MTkzLDIzLjQ0NjIsODU5Ljc3MTEsMjMuMzIyNyw4NjkuNzIyOSwyNC41MDM2LDg3OS42NzQ3LDIzLjI4MzEsODg5LjYyNjUsMjQuNTA5LDg5OS41NzgzLDI0LjIwNjYsOTA5LjUzMDEsMjMuNzMyMSw5MTkuNDgxOSwyMy42NDYyLDkyOS40MzM3LDI0LjQ1ODgsOTM5LjM4NTUsMjMuNzAwNyw5NDkuMzM3MywyNC41OTE5LDk1OS4yODkyLDIzLjQ0NzMsOTY5LjI0MSwyNC42MTc0LDk3OS4xOTI4LDI0LjQ4NDMsOTg5LjE0NDYsMjQuMjQ1LDk5OS4wOTY0LDI0LjA0NzIsMTAwOS4wNDgyLDI0LjcyNjYsMTAxOSwyNCwxMDE5LjYxMzYsMjQsMTAxOS4xNjkzLDM0LjE1NzksMTAxOS4yNjgyLDQ0LjMxNTgsMTAxOC44Njk3LDU0LjQ3MzcsMTAxOS43MTY1LDY0LjYzMTYsMTAxOS4xNTQ5LDc0Ljc4OTUsMTAxOS4xNzI2LDg0Ljk0NzQsMTAxOC4zOTE2LDk1LjEwNTMsMTAxOC41OTQ4LDEwNS4yNjMyLDEwMTkuNTMwNywxMTUuNDIxMSwxMDE5LjQyOTgsMTI1LjU3ODksMTAxOC45NTcxLDEzNS43MzY4LDEwMTguNjc3OCwxNDUuODk0NywxMDE4Ljc4MTEsMTU2LjA1MjYsMTAxOC4zMTM4LDE2Ni4yMTA1LDEwMTkuNDE0NywxNzYuMzY4NCwxMDE5LjczOTYsMTg2LjUyNjMsMTAxOS41MjY0LDE5Ni42ODQyLDEwMTkuNjk0OSwyMDYuODQyMSwxMDE5LDIxNywxMDE5LDIxNi44NjMzLDEwMDkuMDQ4MiwyMTcuMDg3Miw5OTkuMDk2NCwyMTYuNjEyNCw5ODkuMTQ0NiwyMTcuMjg0LDk3OS4xOTI4LDIxNy4yNDY4LDk2OS4yNDEsMjE3LjU1MjQsOTU5LjI4OTIsMjE2Ljc3MDMsOTQ5LjMzNzMsMjE2Ljg2NTYsOTM5LjM4NTUsMjE3LjQ0MzUsOTI5LjQzMzcsMjE3LjU2NzMsOTE5LjQ4MTksMjE2LjQ4NzUsOTA5LjUzMDEsMjE2LjgwNjEsODk5LjU3ODMsMjE3LjE0OTMsODg5LjYyNjUsMjE2LjM4OTIsODc5LjY3NDcsMjE3LjM1MzQsODY5LjcyMjksMjE3LjI1OCw4NTkuNzcxMSwyMTYuODk5Miw4NDkuODE5MywyMTcuMTQyMiw4MzkuODY3NSwyMTcuNzI4Nyw4MjkuOTE1NywyMTYuNjg3MSw4MTkuOTYzOSwyMTcuMzE1LDgxMC4wMTIsMjE3LjI4NTYsODAwLjA2MDIsMjE3LjExNTgsNzkwLjEwODQsMjE3LjE0MDksNzgwLjE1NjYsMjE3LjExMzUsNzcwLjIwNDgsMjE2LjM3NTgsNzYwLjI1MywyMTYuNTk5Miw3NTAuMzAxMiwyMTYuNTM4NSw3NDAuMzQ5NCwyMTcuMDYzOCw3MzAuMzk3NiwyMTcuMDg4MSw3MjAuNDQ1OCwyMTcuMTYxNyw3MTAuNDk0LDIxNi43MDksNzAwLjU0MjIsMjE2LjkzMjUsNjkwLjU5MDQsMjE2Ljg3OTgsNjgwLjYzODYsMjE3LjU3NjksNjcwLjY4NjcsMjE3LjQyNjYsNjYwLjczNDksMjE2LjUxNDUsNjUwLjc4MzEsMjE2LjkyNzEsNjQwLjgzMTMsMjE2LjQyMjgsNjMwLjg3OTUsMjE3LjI4ODQsNjIwLjkyNzcsMjE3LjYwODUsNjEwLjk3NTksMjE3LjU0NDYsNjAxLjAyNDEsMjE2LjU2NDQsNTkxLjA3MjMsMjE3LjQ2NCw1ODEuMTIwNSwyMTYuMjU3Miw1NzEuMTY4NywyMTcuMjAwMiw1NjEuMjE2OSwyMTYuNzAwNyw1NTEuMjY1MSwyMTcuMDk2Nyw1NDEuMzEzMywyMTcuMjQwMyw1MzEuMzYxNCwyMTcuNDcyMSw1MjEuNDA5NiwyMTYuMjgwMSw1MTEuNDU3OCwyMTcuNDc1NSw1MDEuNTA2LDIxNy4xNzgyLDQ5MS41NTQyLDIxNy4zNTUzLDQ4MS42MDI0LDIxNy43NDc4LDQ3MS42NTA2LDIxNy4wMDU1LDQ2MS42OTg4LDIxNy4xNzUzLDQ1MS43NDcsMjE3LjIxMzQsNDQxLjc5NTIsMjE3LjE5NzIsNDMxLjg0MzQsMjE2Ljk5OTIsNDIxLjg5MTYsMjE3LjcxMDcsNDExLjkzOTgsMjE2LjM5MDMsNDAxLjk4OCwyMTcuNTY1MywzOTIuMDM2MSwyMTYuMzc2LDM4Mi4wODQzLDIxNi40NTk3LDM3Mi4xMzI1LDIxNy4wNCwzNjIuMTgwNywyMTcuMDI4MywzNTIuMjI4OSwyMTYuNTA3MiwzNDIuMjc3MSwyMTcuNDEzNywzMzIuMzI1MywyMTcuMTA4OSwzMjIuMzczNSwyMTcuNzI2NywzMTIuNDIxNywyMTcuNjY3MSwzMDIuNDY5OSwyMTYuNTUxNywyOTIuNTE4MSwyMTYuNjAyMSwyODIuNTY2MywyMTYuODcwOCwyNzIuNjE0NSwyMTcuMzU1NSwyNjIuNjYyNywyMTcuNDAzLDI1Mi43MTA4LDIxNy4zMDEyLDI0Mi43NTksMjE2LjY1OCwyMzIuODA3MiwyMTcuNjM2NCwyMjIuODU1NCwyMTcuNjMzOCwyMTIuOTAzNiwyMTYuOTUyNywyMDIuOTUxOCwyMTYuNzYwOSwxOTMsMjE3LDE5Mi41OTg2LDIxNywxOTIuNzg1NCwyMDYuODQyMSwxOTMuMTM3NCwxOTYuNjg0MiwxOTIuOTMxNiwxODYuNTI2MywxOTIuNTgyMiwxNzYuMzY4NCwxOTMuNDg3NCwxNjYuMjEwNSwxOTIuNTQxMSwxNTYuMDUyNiwxOTMuNTAyNCwxNDUuODk0NywxOTMuNDI3MiwxMzUuNzM2OCwxOTMuMzcxOSwxMjUuNTc4OSwxOTMuNjkyNSwxMTUuNDIxMSwxOTIuNzU0MSwxMDUuMjYzMiwxOTIuNjk5NCw5NS4xMDUzLDE5My41MTg5LDg0Ljk0NzQsMTkyLjQwMzEsNzQuNzg5NSwxOTIuNzY2LDY0LjYzMTYsMTkzLjExNTUsNTQuNDczNywxOTMuMDY4Nyw0NC4zMTU4LDE5Mi42NDE1LDM0LjE1NzksMTkzLDI0IiBzdHlsZT0ic3Ryb2tlOiAjQ0NDQ0NDOyBzdHJva2Utd2lkdGg6IDEuNTsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI2NCIgeD0iNTc0IiB5PSIzOC45OTUxIj5DaGFubmVsPC90ZXh0PjwhLS1NRDU9WzJiODEzMzg3YWMxYTlhZjA5ZmEzZTYzOTllMGZlODZjXQplbnRpdHkgc3NsLS0+PHBvbHlnb24gZmlsbD0iI0RGRjBEOCIgcG9pbnRzPSIyMDksOTEuNSwyMDksOTEuNzEwMiwyMTkuNDI4Niw5MS4wODU3LDIyOS44NTcxLDkxLjY5MzMsMjQwLjI4NTcsOTEuODk5NywyNTAuNzE0Myw5MC43ODY2LDI2MS4xNDI5LDkxLjQyMjMsMjcxLjU3MTQsOTEuMDczNSwyODIsOTEuNSwyODEuNjE2NSw5MS41LDI4MS45MzE4LDEwMC45NjUzLDI4MS4zMDg2LDExMC40MzA2LDI4Mi41NTM2LDExOS44OTU4LDI4MS4zNjk3LDEyOS4zNjExLDI4MS44MDIyLDEzOC44MjY0LDI4Mi40MzE5LDE0OC4yOTE3LDI4MS45MTQyLDE1Ny43NTY5LDI4Mi4wNjgyLDE2Ny4yMjIyLDI4MiwxNzYuNjg3NSwyODIsMTc2LjY1NTYsMjcxLjU3MTQsMTc2Ljg2NiwyNjEuMTQyOSwxNzYuOTI2NiwyNTAuNzE0MywxNzcuMjczMiwyNDAuMjg1NywxNzcuMzU4NiwyMjkuODU3MSwxNzcuMzY2OCwyMTkuNDI4NiwxNzYuOTQyMSwyMDksMTc2LjY4NzUsMjA5LjQ2MzYsMTc2LjY4NzUsMjA5LjcwMjIsMTY3LjIyMjIsMjA4LjI3ODgsMTU3Ljc1NjksMjA5LjY3ODUsMTQ4LjI5MTcsMjA4LjcwMzUsMTM4LjgyNjQsMjA5LjUzMzgsMTI5LjM2MTEsMjA4LjUwNSwxMTkuODk1OCwyMDguOTMxNSwxMTAuNDMwNiwyMDkuNzQxNiwxMDAuOTY1MywyMDksOTEuNSIgc3R5bGU9InN0cm9rZTogIzQ2ODg0Nzsgc3Ryb2tlLXdpZHRoOiAxLjU7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIwIiB4PSIyNDcuNSIgeT0iMTE0LjQ5NTEiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjI1IiB4PSIyMzMiIHk9IjEzMC43OTIiPlNTTDwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjUzIiB4PSIyMTkiIHk9IjE0Ny4wODg5Ij5IYW5kbGVyPC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMCIgeD0iMjQ3LjUiIHk9IjE2My4zODU3Ii8+PCEtLU1ENT1bMWExZjcyNzkwOGE1MDEyNzU5MDU2NTBlZmU1MzljOTVdCmVudGl0eSBkZWNvZGVyLS0+PHBvbHlnb24gZmlsbD0iI0RGRjBEOCIgcG9pbnRzPSIzOTUsNTkuNSwzOTUsNTkuNzEwMiw0MDUsNTkuMDg1Nyw0MTUsNTkuNjkzMyw0MjUsNTkuODk5Nyw0MzUsNTguNzg2Niw0NDUsNTkuNDIyMyw0NTUsNTkuMDczNSw0NjUsNTkuMTE2NSw0NzUsNTkuNSw0NzQuOTMxOCw1OS41LDQ3NC4zMDg2LDcwLjAxODgsNDc1LjU1MzYsODAuNTM3NSw0NzQuMzY5Nyw5MS4wNTYzLDQ3NC44MDIyLDEwMS41NzUsNDc1LDExMi4wOTM4LDQ3NSwxMTIuNTI1Nyw0NjUsMTEyLjAwOCw0NTUsMTEyLjE2Miw0NDUsMTEyLjA2MTgsNDM1LDExMi4yNzIzLDQyNSwxMTIuMzMyOSw0MTUsMTEyLjY3OTQsNDA1LDExMi43NjQ4LDM5NSwxMTIuMDkzOCwzOTUuNjc5MywxMTIuMDkzOCwzOTUuMjU0NiwxMDEuNTc1LDM5NS40NjM2LDkxLjA1NjMsMzk1LjcwMjIsODAuNTM3NSwzOTQuMjc4OCw3MC4wMTg4LDM5NSw1OS41IiBzdHlsZT0ic3Ryb2tlOiAjNDY4ODQ3OyBzdHJva2Utd2lkdGg6IDEuNTsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjM3IiB4PSI0MTYuNSIgeT0iODIuNDk1MSI+SFRUUDwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjYwIiB4PSI0MDUiIHk9Ijk4Ljc5MiI+RGVjb2RlcjwvdGV4dD48IS0tTUQ1PVs5NWFlYTBhNTNlZmI2MThmYzU2OWVjZTExOTc3ODFkZl0KZW50aXR5IGVuY29kZXItLT48cG9seWdvbiBmaWxsPSIjREZGMEQ4IiBwb2ludHM9IjM5NiwxNDcuNSwzOTYsMTQ3LjcxMDIsNDA1Ljc1LDE0Ny4wODU3LDQxNS41LDE0Ny42OTMzLDQyNS4yNSwxNDcuODk5Nyw0MzUsMTQ2Ljc4NjYsNDQ0Ljc1LDE0Ny40MjIzLDQ1NC41LDE0Ny4wNzM1LDQ2NC4yNSwxNDcuMTE2NSw0NzQsMTQ3LjUsNDczLjkzMTgsMTQ3LjUsNDczLjMwODYsMTU4LjAxODgsNDc0LjU1MzYsMTY4LjUzNzUsNDczLjM2OTcsMTc5LjA1NjMsNDczLjgwMjIsMTg5LjU3NSw0NzQsMjAwLjA5MzgsNDc0LDIwMC41MjU3LDQ2NC4yNSwyMDAuMDA4LDQ1NC41LDIwMC4xNjIsNDQ0Ljc1LDIwMC4wNjE4LDQzNSwyMDAuMjcyMyw0MjUuMjUsMjAwLjMzMjksNDE1LjUsMjAwLjY3OTQsNDA1Ljc1LDIwMC43NjQ4LDM5NiwyMDAuMDkzOCwzOTYuNjc5MywyMDAuMDkzOCwzOTYuMjU0NiwxODkuNTc1LDM5Ni40NjM2LDE3OS4wNTYzLDM5Ni43MDIyLDE2OC41Mzc1LDM5NS4yNzg4LDE1OC4wMTg4LDM5NiwxNDcuNSIgc3R5bGU9InN0cm9rZTogIzQ2ODg0Nzsgc3Ryb2tlLXdpZHRoOiAxLjU7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzNyIgeD0iNDE2LjUiIHk9IjE3MC40OTUxIj5IVFRQPC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNTgiIHg9IjQwNiIgeT0iMTg2Ljc5MiI+RW5jb2RlcjwvdGV4dD48IS0tTUQ1PVtmM2JmMjMyZDkwY2FiYWU2NmYwNjA5YmE1MGViNGQxNl0KZW50aXR5IGFnZ3JlZ2F0b3ItLT48cG9seWdvbiBmaWxsPSIjREZGMEQ4IiBwb2ludHM9IjY0Miw2MC41LDY0Miw2MC43MTAyLDY1MS44LDYwLjA4NTcsNjYxLjYsNjAuNjkzMyw2NzEuNCw2MC44OTk3LDY4MS4yLDU5Ljc4NjYsNjkxLDYwLjQyMjMsNzAwLjgsNjAuMDczNSw3MTAuNiw2MC4xMTY1LDcyMC40LDYwLjQzMTgsNzMwLjIsNTkuODA4Niw3NDAsNjAuNSw3NDAuNTUzNiw2MC41LDczOS4zNjk3LDcxLjAxODgsNzM5LjgwMjIsODEuNTM3NSw3NDAuNDMxOSw5Mi4wNTYzLDczOS45MTQyLDEwMi41NzUsNzQwLDExMy4wOTM4LDc0MCwxMTMuMTYyLDczMC4yLDExMy4wNjE4LDcyMC40LDExMy4yNzIzLDcxMC42LDExMy4zMzI5LDcwMC44LDExMy42Nzk0LDY5MSwxMTMuNzY0OCw2ODEuMiwxMTMuNzczLDY3MS40LDExMy4zNDg0LDY2MS42LDExMy41NTczLDY1MS44LDExMy43OTYsNjQyLDExMy4wOTM4LDY0MS4yNzg4LDExMy4wOTM4LDY0Mi42Nzg1LDEwMi41NzUsNjQxLjcwMzUsOTIuMDU2Myw2NDIuNTMzOCw4MS41Mzc1LDY0MS41MDUsNzEuMDE4OCw2NDIsNjAuNSIgc3R5bGU9InN0cm9rZTogIzQ2ODg0Nzsgc3Ryb2tlLXdpZHRoOiAxLjU7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI3OCIgeD0iNjUyIiB5PSI4My40OTUxIj5IdHRwIE9iamVjdDwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9Ijc3IiB4PSI2NTIuNSIgeT0iOTkuNzkyIj5BZ2dyZWdhdG9yPC90ZXh0PjwhLS1NRDU9WzFjNGI4YmQ5ZmY0ZWYxMDY2NTU1OWUzNWE5ZTEyYTgzXQplbnRpdHkgaGFuZGxlci0tPjxwb2x5Z29uIGZpbGw9IiNERkYwRDgiIHBvaW50cz0iOTE5LDcxLDkxOSw3MS4yMTAyLDkyOS41LDcwLjU4NTcsOTQwLDcxLjE5MzMsOTUwLjUsNzEuMzk5Nyw5NjEsNzAuMjg2Niw5NzEuNSw3MC45MjIzLDk4Miw3MC41NzM1LDk5Mi41LDcwLjYxNjUsMTAwMyw3MSwxMDAyLjkzMTgsNzEsMTAwMi4zMDg2LDgwLjgxNTEsMTAwMy41NTM2LDkwLjYzMDIsMTAwMi4zNjk3LDEwMC40NDUzLDEwMDIuODAyMiwxMTAuMjYwNCwxMDAzLjQzMTksMTIwLjA3NTUsMTAwMi45MTQyLDEyOS44OTA2LDEwMDMuMDY4MiwxMzkuNzA1NywxMDAyLjk2ODEsMTQ5LjUyMDgsMTAwMy4xNzg1LDE1OS4zMzU5LDEwMDMuMjM5MSwxNjkuMTUxLDEwMDMuNTg1NywxNzguOTY2MSwxMDAzLDE4OC43ODEzLDEwMDMsMTg5LjQ1MjMsOTkyLjUsMTg5LjQ2MDUsOTgyLDE4OS4wMzU5LDk3MS41LDE4OS4yNDQ4LDk2MSwxODkuNDgzNSw5NTAuNSwxODguMDYwMSw5NDAsMTg5LjQ1OTgsOTI5LjUsMTg4LjQ4NDcsOTE5LDE4OC43ODEzLDkxOS41MzM4LDE4OC43ODEzLDkxOC41MDUsMTc4Ljk2NjEsOTE4LjkzMTUsMTY5LjE1MSw5MTkuNzQxNiwxNTkuMzM1OSw5MTguOTUxMywxNDkuNTIwOCw5MTkuMTA1MywxMzkuNzA1Nyw5MTkuMzM4NiwxMjkuODkwNiw5MTkuNDE2MiwxMjAuMDc1NSw5MTguOTk2MSwxMTAuMjYwNCw5MTkuMjg3MiwxMDAuNDQ1Myw5MTguNDI3Niw5MC42MzAyLDkxOS4yODQ0LDgwLjgxNTEsOTE5LDcxIiBzdHlsZT0ic3Ryb2tlOiAjNDY4ODQ3OyBzdHJva2Utd2lkdGg6IDEuNTsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjAiIHg9Ijk2MyIgeT0iOTMuOTk1MSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMCIgeD0iOTYzIiB5PSIxMTAuMjkyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI2NCIgeD0iOTI5IiB5PSIxMjYuNTg4OSI+QnVzaW5lc3M8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI1MyIgeD0iOTM0LjUiIHk9IjE0Mi44ODU3Ij5IYW5kbGVyPC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMCIgeD0iOTYzIiB5PSIxNTkuMTgyNiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMCIgeD0iOTYzIiB5PSIxNzUuNDc5NSIvPjwhLS1NRDU9WzRhNjVlODQwNTkwMDVkMTI2OTNhMDgzMzcwYTA2NzE3XQplbnRpdHkgY2xpZW50LS0+PHBvbHlnb24gZmlsbD0iI0RGRjBEOCIgcG9pbnRzPSI2LDk5LjUsNiw5OS43MTAyLDE1LjgzMzMsOTkuMDg1NywyNS42NjY3LDk5LjY5MzMsMzUuNSw5OS44OTk3LDQ1LjMzMzMsOTguNzg2Niw1NS4xNjY3LDk5LjQyMjMsNjUsOTkuNSw2NC41NzM1LDk5LjUsNjQuNjE2NSwxMDkuMzQxNSw2NC45MzE4LDExOS4xODMsNjQuMzA4NiwxMjkuMDI0Niw2NS41NTM2LDEzOC44NjYxLDY0LjM2OTcsMTQ4LjcwNzYsNjQuODAyMiwxNTguNTQ5MSw2NSwxNjguMzkwNiw2NSwxNjguODIyNiw1NS4xNjY3LDE2OC4zMDQ4LDQ1LjMzMzMsMTY4LjQ1ODksMzUuNSwxNjguMzU4NywyNS42NjY3LDE2OC41NjkyLDE1LjgzMzMsMTY4LjYyOTgsNiwxNjguMzkwNiw2LjU4NTcsMTY4LjM5MDYsNi42NzExLDE1OC41NDkxLDYuNjc5MywxNDguNzA3Niw2LjI1NDYsMTM4Ljg2NjEsNi40NjM2LDEyOS4wMjQ2LDYuNzAyMiwxMTkuMTgzLDUuMjc4OCwxMDkuMzQxNSw2LDk5LjUiIHN0eWxlPSJzdHJva2U6ICM0Njg4NDc7IHN0cm9rZS13aWR0aDogMS41OyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMCIgeD0iMzcuNSIgeT0iMTIyLjQ5NTEiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjM5IiB4PSIxNiIgeT0iMTM4Ljc5MiI+Q2xpZW50PC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMCIgeD0iMzcuNSIgeT0iMTU1LjA4ODkiLz48IS0tTUQ1PVtjMzY1YmQ2YzY5NmIxZGM2YTI0ZTZkMzAyZDdkOTBmNF0KbGluayBjbGllbnQgdG8gc3NsLS0+PHBhdGggZD0iTTY1LjQyMTUsMTM0IEw2NS40MjE1LDEzNC4yODAyIEw3NS4yODQ1LDEzMy40NDc2IEw4NS4xNDc0LDEzNC4yNTc3IEw5NS4wMTA0LDEzNC41MzI5IEwxMDQuODczNCwxMzMuMDQ4OCBMMTE0LjczNjMsMTMzLjg5NjQgTDEyNC41OTkzLDEzMy40MzEzIEwxMzQuNDYyMiwxMzMuNDg4NyBMMTQ0LjMyNTIsMTMzLjkwOTEgTDE1NC4xODgyLDEzMy4wNzgyIEwxNjQuMDUxMSwxMzQuNzM4MiBMMTczLjkxNDEsMTMzLjE1OTYgTDE4My43NzcxLDEzMy43MzYzIEwxOTMuNjQsMTM0LjU3NTkgTDIwMy41MDMsMTM0ICIgZmlsbD0ibm9uZSIgc3R5bGU9InN0cm9rZTogIzQ2NzQ5Rjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBvbHlnb24gZmlsbD0iIzQ2NzQ5RiIgcG9pbnRzPSIyMDguODYyLDEzNCwyMDguODkwNSwxMzQuMDY0LDIwNy4wMDU5LDEzMy4wNzM4LDIwNS4yODgyLDEzMi40NTg5LDIwMy41MTYxLDEzMS43MjE3LDIwMS41NjU0LDEzMC41ODI3LDE5OS44NjIsMTMwLDE5OS44NDM3LDEyOS45ODE3LDIwMC41NjE1LDEzMC42OTk1LDIwMS4zNzE2LDEzMS41MDk2LDIwMi4yNDU5LDEzMi4zODM5LDIwMi44OTksMTMzLjAzNywyMDMuODYyLDEzNCwyMDMuOTkyNSwxMzQuMTMwNSwyMDIuOTEzNCwxMzQuNjUxNCwyMDIuMjE1NCwxMzUuNTUzNCwyMDEuNTYzOCwxMzYuNTAxOCwyMDAuNjQxOCwxMzcuMTc5OCwxOTkuODYyLDEzOCwxOTkuODcxMiwxMzguMDIwOCwyMDEuNjU3NywxMzcuMTkwMywyMDMuNDg2MiwxMzYuNDU0NCwyMDUuMjk0NCwxMzUuNjcyOCwyMDcuMTQxMywxMzQuOTc4NCwyMDguODYyLDEzNCIgc3R5bGU9InN0cm9rZTogIzQ2NzQ5Rjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI4MCIgeD0iOTYiIHk9IjEzMC4wNjY5Ij4wLiBlbmNyeXB0ZWQ8L3RleHQ+PCEtLU1ENT1bNWVmNzA1OWNmNzJjMWRkNmJhZjM0NWFkNGYzYTRiYzNdCnJldmVyc2UgbGluayBjbGllbnQgdG8gc3NsLS0+PHBhdGggZD0iTTcwLjA4MTMsMTUxLjA3MTYgTDcwLjExMzcsMTUxLjE1OTIgTDcyLjQ4MjIsMTUxLjgwOTggTDc1LjA0MDUsMTUyLjk3NCBMNzcuNTM3LDE1My45NzA5IEw3OS44MzAzLDE1NC40MTc4IEw4Mi40MDQ5LDE1NS42MjYxIEw4Mi4zOTYsMTU1LjU5MjggTDg0Ljg3NDksMTU2LjExNzggTDg3LjM5ODgsMTU2LjgxMSBMODkuOTU0MSwxNTcuNjIxMiBMOTIuNDAxNSwxNTguMDI4NCBMOTUsMTU5IEw5NS4wNDY0LDE1OS4yNDE2IEw5Ny40MDc4LDE1OS4xOTc0IEw5OS45MDQ2LDE1OS44NTg2IEwxMDIuNDE4LDE2MC42MDU5IEwxMDQuODM1MiwxNjAuODUyNCBMMTA3LjMwMywxNjEuMzYyMyBMMTA3LjMwNzcsMTYxLjM5MjMgTDEwOS40MDY0LDE2MS42NzM0IEwxMTEuNTI2MSwxNjIuMDkwOSBMMTEzLjYzNTcsMTYyLjQ0MjYgTDExNS43NjQ3LDE2Mi45MTk5IEwxMTcuODMwNSwxNjIuOTg3OCBMMTE3Ljg0OTYsMTYzLjI4NTQgTDEyMS40NzExLDE2My41MjE5IEwxMjUuMDgwMiwxNjMuNTY2NSBMMTI4LjcwNzQsMTYzLjg5MiBMMTMyLjMzNTQsMTY0LjIzMDcgTDEzNS45MzY2LDE2NC4xNTIxIEwxMzUuOTExOCwxNjMuODMyNiBMMTM5LjU4NzYsMTY0LjE3MDQgTDE0My4xODE1LDE2My40NTYxIEwxNDYuODM3NywxNjMuNTQxNiBMMTUwLjQyOTgsMTYyLjgwMzQgTDE1NC4wNzQ1LDE2Mi43NDA0IEwxNTQuMDY5OSwxNjIuNzEwMyBMMTU2LjIzNywxNjIuNzQ3NCBMMTU4LjI5OCwxNjIuMDgxMiBMMTYwLjQyMTcsMTYxLjgyOTkgTDE2Mi41NTA2LDE2MS42MTM2IEwxNjQuNjQxNSwxNjEuMTQ1OCBMMTY0LjY3MzIsMTYxLjMyODEgTDE2Ny4xMTI5LDE2MC43MTQ5IEwxNjkuNjA2NywxNjAuNDEzMyBMMTcyLjAxMzEsMTU5LjYwNzcgTDE3NC41NDk5LDE1OS41NTM3IEwxNzcsMTU5IEwxNzcuMDU2OCwxNTkuMjM2OSBMMTgwLjI1NzcsMTU4LjQyMjUgTDE4My40ODY5LDE1Ny43MjU4IEwxODYuNTg1MSwxNTYuNDgyNCBMMTg5Ljc3OTMsMTU1LjYzOTcgTDE5My4wNTg1LDE1NS4xNTIgTDE5Mi45NzExLDE1NC44OSBMMTk2LjE4NDUsMTU0LjA4MTQgTDE5OS4yOTk1LDE1Mi45Nzc2IEwyMDIuNTU3MywxNTIuMzAyIEwyMDUuNTcxMSwxNTAuODk1MyBMMjA4LjczLDE0OS45MjMyICIgZmlsbD0ibm9uZSIgc3R5bGU9InN0cm9rZTogI0ZGMDAwMDsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBvbHlnb24gZmlsbD0iI0ZGMDAwMCIgcG9pbnRzPSI2NS4yMDkyLDE0OC45OTM2LDY1LjI2MDUsMTQ5LjA0MTMsNjYuNDQ5OSwxNTAuMzQxNiw2Ny45NDAxLDE1MS45MjE2LDY5LjMzMjMsMTUzLjQxMDUsNzAuNDAyNSwxNTQuNTk5Nyw3MS45MTg0LDE1Ni4yMDM4LDcxLjg5NDQsMTU2LjE5NDEsNzEuMzY0NSwxNTUuMTAxLDcwLjk1NTgsMTU0LjA1NjYsNzAuNjMxMywxNTMuMDQ2MSw3MC4wMTY1LDE1MS45MTg5LDY5LjgwODQsMTUwLjk1NTIsNjkuODc3MiwxNTEuMTI2NCw3MC43Nzk3LDE1MC4zMzgyLDcxLjg4MzIsMTUwLjA1LDczLjAxMTIsMTQ5LjgyMjcsNzMuOTk2NiwxNDkuMjQwNiw3NS4wNTY5LDE0OC44NDUxLDc1LjA1NzMsMTQ4Ljg2NzksNzMuMDg3MiwxNDguODY0Miw3MS4xMTg3LDE0OC45NjQsNjkuMTQ5NSwxNDkuMDEzOSw2Ny4xODE3LDE0OS4xNTkxLDY1LjIwOTIsMTQ4Ljk5MzYiIHN0eWxlPSJzdHJva2U6ICNGRjAwMDA7IHN0cm9rZS13aWR0aDogMS4wOyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9Ijk2IiB5PSIxNTUuMDY2OSI+Ni4gZW5jcnlwdGVkPC90ZXh0PjwhLS1NRDU9WzE5ZGY0MTQwNzQ1MDg1NDMwM2ZiZTRmMzk3OTY1ZDA0XQpsaW5rIHNzbCB0byBkZWNvZGVyLS0+PHBhdGggZD0iTTI4Mi4yMDksMTI0Ljg1OSBMMjgyLjI3ODUsMTI1LjEzMDUgTDI5MS44NDM5LDEyMS44MjIyIEwzMDEuODE2NywxMjAuMTA1NCBMMzExLjY1NjksMTE3Ljg3MDMgTDMyMS4wNjA3LDExMy45MzEgTDMzMS4wNDI4LDExMi4yNTA0IEwzNDAuNjk5NCwxMDkuMjk4MyBMMzUwLjQ4NTYsMTA2Ljg1MjIgTDM2MC4zNjE3LDEwNC43NTc5IEwzNjkuOTI3NiwxMDEuNDUxMiBMMzgwLjExMTIsMTAwLjU1NzggTDM4OS43LDk3LjM0MSAiIGZpbGw9Im5vbmUiIHN0eWxlPSJzdHJva2U6ICM0Njc0OUY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwb2x5Z29uIGZpbGw9IiM0Njc0OUYiIHBvaW50cz0iMzk0Ljg2NCw5Ni4wMTksMzk0Ljg3NTcsOTYuMDg4MSwzOTIuODk4OCw5NS41NTQzLDM5MC45OTA0LDk1LjQyNTUsMzg5LjA1OTcsOTUuMTY0OCwzODcuMDU1Niw5NC40NzA1LDM4NS4xNTMxLDk0LjM3NjQsMzg1LjEzOTksOTQuMzU0MSwzODYuMDU0MSw5NC44MzA3LDM4Ny4wMzQ4LDk1LjQxOTYsMzg4LjA2MTgsOTYuMDg2NiwzODguOTI5NCw5Ni40ODQ0LDM5MC4wMjAzLDk3LjI1OTIsMzkwLjE3OSw5Ny4zNTMzLDM4OS4yNjI5LDk4LjEyNTYsMzg4LjgxMDQsOTkuMTcyNSwzODguNDE0NSwxMDAuMjUyOSwzODcuNjg5NCwxMDEuMTM4NCwzODcuMTM3NCwxMDIuMTI2NCwzODcuMTUxNiwxMDIuMTQ0MiwzODguNjc2MiwxMDAuODk2NiwzOTAuMjY1LDk5LjczMDEsMzkxLjgyMjgsOTguNTI0NSwzOTMuNDM5OCw5Ny4zOTM2LDM5NC44NjQsOTYuMDE5IiBzdHlsZT0ic3Ryb2tlOiAjNDY3NDlGOyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjUxIiB4PSIzMTMiIHk9IjEwMS4wNjY5Ij4xLiBieXRlczwvdGV4dD48IS0tTUQ1PVsyZmIwZGYzZGNkNGU3ZGNjMDIzZGE4ODRkZmI0MDU5NV0KbGluayBkZWNvZGVyIHRvIGFnZ3JlZ2F0b3ItLT48cGF0aCBkPSJNNDc1LjEzMSw4Ni4xNTQgTDQ3NS4xMzIxLDg2LjQzNDIgTDQ4NS4yMTU0LDg1LjY0MTMgTDQ5NS4zMDUxLDg2LjQ5MTEgTDUwNS4zOTI4LDg2LjgwNiBMNTE1LjQ3MzUsODUuMzYxNiBMNTI1LjU2MzQsODYuMjQ4OCBMNTM1LjY0ODEsODUuODIzNSBMNTQ1LjczNDksODUuOTIwNSBMNTU1LjgyMzEsODYuMzgwNiBMNTY1LjkwNjQsODUuNTg5NCBMNTc1Ljk5OTUsODcuMjg5MSBMNTg2LjA3OTksODUuNzUwMiBMNTk2LjE2ODcsODYuMzY2NiBMNjA2LjI1ODYsODcuMjQ1OSBMNjE2LjM0MjQsODYuNTk1MyBMNjI2LjQyOTgsODYuODQwMyBMNjM2LjUxNiw4Ni43ODkgIiBmaWxsPSJub25lIiBzdHlsZT0ic3Ryb2tlOiAjNDY3NDlGOyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cG9seWdvbiBmaWxsPSIjNDY3NDlGIiBwb2ludHM9IjY0MS43MDQsODYuODEsNjQxLjczMjcsODYuODczOSw2MzkuODUwNiw4NS44NzY4LDYzOC4xMzY4LDg1LjI1NDQsNjM2LjM2ODIsODQuNTA5OSw2MzQuNDE5NCw4My4zNjQzLDYzMi43MjAxLDgyLjc3NCw2MzIuNzAxNyw4Mi43NTU4LDYzMy40MTU5LDgzLjQ3NzEsNjM0LjIyMjksODQuMjkwNCw2MzUuMDk0Myw4NS4xNjc2LDYzNS43NDM2LDg1LjgyNDUsNjM2LjcwNCw4Ni43OSw2MzYuODM0LDg2LjkyMSw2MzUuNzUyOSw4Ny40Mzc2LDYzNS4wNTEyLDg4LjMzNjgsNjM0LjM5NTksODkuMjgyNiw2MzMuNDcxMSw4OS45NTY5LDYzMi42ODgxLDkwLjc3NCw2MzIuNjk3Miw5MC43OTQ4LDYzNC40ODcsODkuOTcxNCw2MzYuMzE4NCw4OS4yNDI5LDYzOC4xMjk3LDg4LjQ2ODYsNjM5Ljk3OTQsODcuNzgxNSw2NDEuNzA0LDg2LjgxIiBzdHlsZT0ic3Ryb2tlOiAjNDY3NDlGOyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNSIgeD0iNTA2IiB5PSI2OC4wNjY5Ij4yLiBodHRwIG1hc3NhZ2U8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI0NSIgeD0iNTM2IiB5PSI4My4xOTk3Ij5jaHVua3M8L3RleHQ+PCEtLU1ENT1bOGI4ODc5M2UzZTk2MWIzNDQ4ZWU5OWVjZDlkZDUyYjZdCmxpbmsgYWdncmVnYXRvciB0byBoYW5kbGVyLS0+PHBhdGggZD0iTTc0MC4yMjMsOTQuNzM3IEw3NDAuMjY3NCw5NS4wMTM3IEw3NDkuNzY1NSw5NS43MzY3IEw3NTkuNTIzOCw5OC4wODE3IEw3NjkuMTk3NCw5OS44OTg1IEw3NzguNTkyMyw5OS45NzgzIEw3ODguMzU2NiwxMDIuMzYwMiBMNzk3LjkxMjksMTAzLjQ0NjIgTDgwNy41NTIsMTA1LjA0NzkgTDgxNy4yNDg2LDEwNy4wMDgyIEw4MjYuNzQ3LDEwNy43MzI4IEw4MzYuNjM5OSwxMTAuOTE3IEw4NDYuMDE5OSwxMTAuOTAzNSBMODU1Ljc0MTIsMTEzLjAxOCBMODY1LjUwNDIsMTE1LjM5MjEgTDg3NS4wMjQ5LDExNi4yNTU2IEw4ODQuNjg3NCwxMTguMDAzNSBMODk0LjI5NjMsMTE5LjQxNjcgTDkwMy45NzA3LDEyMS4yMzg5IEw5MTMuNTYzLDEyMi41NDkgIiBmaWxsPSJub25lIiBzdHlsZT0ic3Ryb2tlOiAjNDY3NDlGOyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cG9seWdvbiBmaWxsPSIjNDY3NDlGIiBwb2ludHM9IjkxOC43NTIsMTIzLjM4Miw5MTguNzkwMiwxMjMuNDQwNyw5MTcuMDI2MiwxMjIuMTkxLDkxNS40ODY0LDEyMS4yODU0LDkxMy44NzM2LDEyMC4yNjc4LDkxMi4wMjA3LDExOC44ODE2LDkxMC41MDAxLDExOC4wMDU2LDkxMC40NzkxLDExNy45OTA0LDkxMS4wNDc5LDExOC44MzksOTExLjcyMjYsMTE5Ljc2NDEsOTEyLjQ3MDgsMTIwLjc0MjQsOTEyLjk2NTUsMTIxLjUzNzQsOTEzLjgxNTMsMTIyLjU4OTIsOTEzLjkyMzQsMTIyLjczODcsOTEyLjc3NTQsMTIzLjA4Miw5MTEuOTQzMiwxMjMuODYxOSw5MTEuMTQ5NSwxMjQuNjk1LDkxMC4xMzE2LDEyNS4yMTgyLDkwOS4yMzE2LDEyNS45MDQ0LDkwOS4yMzc0LDEyNS45MjY0LDkxMS4xMzMsMTI1LjM4OTYsOTEzLjA1NSwxMjQuOTUyOSw5MTQuOTY0MywxMjQuNDY4LDkxNi44OTc5LDEyNC4wNzUyLDkxOC43NTIsMTIzLjM4MiIgc3R5bGU9InN0cm9rZTogIzQ2NzQ5Rjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMTciIHg9Ijc3MSIgeT0iOTYuMDY2OSI+My4gZnVsbCBodHRwIHJlcXVlc3Q8L3RleHQ+PCEtLU1ENT1bNWQ1ZjIxMGM4MWI3ZjUzMDUyNDE0OTk5NDhjNDE5M2VdCnJldmVyc2UgbGluayBlbmNvZGVyIHRvIGhhbmRsZXItLT48cGF0aCBkPSJNNDc5LjI5NywxNzAuMzY0NCBMNDc5LjMyMDQsMTcwLjY0MzcgTDQ4OS4yMzk2LDE2OC45NzUyIEw0OTkuMjk2MiwxNjguOTQzNyBMNTA5LjMwOCwxNjguMzc5MiBMNTE5LjE3MjcsMTY2LjA2MTUgTDUyOS4yMzI0LDE2Ni4wNjc0IEw1MzkuMTgyMywxNjQuNzY1MiBMNTQ5LjE3NTksMTYzLjk4MzYgTDU1OS4xOTk5LDE2My41NjM4IEw1NjkuMTE5MiwxNjEuODk3IEw1NzkuMjQ2OSwxNjIuNzEyNCBMNTg5LjEwMzcsMTYwLjMwMDYgTDU5OS4xNDA4LDE2MC4wMzY2IEw2MDkuMTk5OCwxNjAuMDM0NSBMNjE5LjEzMDksMTU4LjUwNzggTDYyOS4xMzY5LDE1Ny44NzM3IEw2MzkuMTE0NSwxNTYuOTAxOCBMNjQ5LjEyNjgsMTU2LjM0MjcgTDY1OS4xMjI0LDE1NS41ODQ1IEw2NjkuMTQ5OSwxNTUuMjA2MiBMNjc5LjE0ODIsMTU0LjQ4MDkgTDY4OS4xMzgsMTUzLjY1MyBMNjk5LjA3OTQsMTUyLjI1MDEgTDcwOS4wOTE1LDE1MS42ODg5IEw3MTkuMTA3LDE1MS4xNjczIEw3MjguOTM3LDE0OC40MzczIEw3MzkuMDgyLDE0OS40NTgyIEw3NDguOTYyLDE0Ny4zMjQgTDc1OS4wNDM1LDE0Ny41ODg1IEw3NjguOTE3NSwxNDUuMzgyNyBMNzc4Ljk1MzksMTQ1LjExMDcgTDc4OS4wMzMxLDE0NS4zNDgzIEw3OTguOTMzNywxNDMuNDU5NCBMODA4LjkzOTcsMTQyLjgyNTMgTDgxOC45NTQ2LDE0Mi4yOTY2IEw4MjguOTUyMSwxNDEuNTYwOSBMODM4Ljg5NCwxNDAuMTY0IEw4NDguOTE1MywxMzkuNzEyIEw4NTguODA4MiwxMzcuNzMxMSBMODY4Ljg5MjYsMTM4LjAzMDcgTDg3OC45MTA5LDEzNy41NDI1IEw4ODguODg4MSwxMzYuNTY2IEw4OTguODk1OCwxMzUuOTUxMSBMOTA4Ljc2MjMsMTMzLjY1NiBMOTE4LjgwNSwxMzMuNDU5MSAiIGZpbGw9Im5vbmUiIHN0eWxlPSJzdHJva2U6ICNGRjAwMDA7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwb2x5Z29uIGZpbGw9IiNGRjAwMDAiIHBvaW50cz0iNDc0LjEwNywxNzAuODAwMiw0NzQuMTMsMTcwLjg2NjQsNDc1LjkyMjMsMTcxLjMxNjIsNDc3Ljg0OTUsMTcyLjE1NDEsNDc5LjczMjcsMTcyLjg2NTYsNDgxLjQ3MTYsMTczLjE2MTYsNDgzLjQxMDMsMTc0LjAzMjcsNDgzLjM5MzUsMTc0LjAxMjksNDgyLjQ1NDMsMTczLjE5MzksNDgxLjU5OTQsMTcyLjQ3NDYsNDgwLjgwMzEsMTcxLjgyNDcsNDc5LjgwNDksMTcwLjkzNTgsNDc5LjA4OTQsMTcwLjM4MTYsNDc5LjIzMDQsMTcwLjUwMDcsNDc5LjY1OTIsMTY5LjM4MTksNDgwLjQ5OTUsMTY4LjYxMDgsNDgxLjM5MDEsMTY3Ljg4MjEsNDgxLjk4ODUsMTY2LjkwNjUsNDgyLjc0MDUsMTY2LjA2MDgsNDgyLjc1MTUsMTY2LjA4MDcsNDgxLjAwODcsMTY2Ljk5OTQsNDc5LjMxNTgsMTY4LjAwODcsNDc3LjU5ODgsMTY4Ljk3NDMsNDc1LjkyNzcsMTcwLjAyMzUsNDc0LjEwNywxNzAuODAwMiIgc3R5bGU9InN0cm9rZTogI0ZGMDAwMDsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI4NSIgeD0iNjQ4LjUiIHk9IjE0NS4wNjY5Ij40LiBodHRwIG9iamVjdDwvdGV4dD48IS0tTUQ1PVthZDgzOTM2MGFhNDZjZWU5YjkwMzcxMGQxNDdiZGUyMV0KcmV2ZXJzZSBsaW5rIHNzbCB0byBlbmNvZGVyLS0+PHBhdGggZD0iTTI4Ny4xMDEsMTQ1Ljc2NjcgTDI4Ny4xMjQ2LDE0NS44NTcxIEwyODkuNTUyOSwxNDYuMjM5NSBMMjkyLjExOTQsMTQ3LjE1MTcgTDI5NC42NDA5LDE0Ny44OTE1IEwyOTcuMDE0NiwxNDguMDYzNyBMMjk5LjU5MjksMTQ5LjAyMTUgTDI5OS41ODQ4LDE0OC45ODc5IEwzMDIuMDMwMSwxNDkuNDMyOSBMMzA0LjUxNTksMTUwLjA0NzIgTDMwNy4wMzAxLDE1MC43NzkxIEwzMDkuNDQ2OCwxNTEuMTA1NSBMMzEyLDE1MiBMMzEyLjA1MTcsMTUyLjI0MDYgTDMxNi4yMzkyLDE1Mi42NDk0IEwzMjAuNTc3NSwxNTMuNzYwNiBMMzI0LjkzNDMsMTU0Ljk1NzUgTDMyOS4xODQsMTU1LjY1NTggTDMzMy40OSwxNTYuNjE2NCBMMzMzLjQ5NTgsMTU2LjY0NjEgTDMzNy44NjE5LDE1Ny40NTc2IEwzNDIuMjU0NSwxNTguNDA0NiBMMzQ2LjYzNDMsMTU5LjI4NjMgTDM1MS4wMzg0LDE2MC4yOTI2IEwzNTUuMzYzMSwxNjAuODkyNCBMMzU1LjQxNjMsMTYxLjE4NTggTDM1OS42NTA1LDE2MS45NTcxIEwzNjMuODUwMywxNjIuNTM5IEwzNjguMTAwNCwxNjMuMzk4MSBMMzcyLjM1MjksMTY0LjI3MDEgTDM3Ni41MzA3LDE2NC43MzA3IEwzNzYuNDc2OCwxNjQuNDE0NyBMMzgwLjQ1NjEsMTY1LjY4ODcgTDM4NC4yNTc5LDE2NS45MjIyIEwzODguMTk0NiwxNjYuOTQ2NyBMMzkxLjk5MjQsMTY3LjE1NjYgTDM5NS45MDQsMTY4LjAzNDIgIiBmaWxsPSJub25lIiBzdHlsZT0ic3Ryb2tlOiAjRkYwMDAwOyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cG9seWdvbiBmaWxsPSIjRkYwMDAwIiBwb2ludHM9IjI4Mi4wNDcsMTQ0LjM5MzIsMjgyLjA5MTMsMTQ0LjQ0NzUsMjgzLjQ4NjksMTQ1LjUzMDIsMjg1LjE0MiwxNDYuOTMxNCwyODYuNzEyNiwxNDguMjI4OCwyODguMDA1NCwxNDkuMTg1MywyODkuNjgyNywxNTAuNjEzOCwyODkuNjYwMywxNTAuNjAwOSwyODguOTk3MiwxNDkuNTYxMywyODguNDQ3NSwxNDguNTg2NiwyODcuOTc2NSwxNDcuNjU3LDI4Ny4yMzQxLDE0Ni41NzIsMjg2Ljg3MTksMTQ1LjcwNDcsMjg2Ljk2MzYsMTQ1Ljg2NDgsMjg3Ljc0OTQsMTQ0Ljk2MDIsMjg4LjgwMjgsMTQ0LjUyMzEsMjg5Ljg4OSwxNDQuMTQzMSwyOTAuNzg1LDE0My40MzEyLDI5MS43ODExLDE0Mi44OTM5LDI5MS43ODQ1LDE0Mi45MTYzLDI4OS44MzI2LDE0My4xODMyLDI4Ny44OTY1LDE0My41NTI0LDI4NS45NTI4LDE0My44NzIyLDI4NC4wMjM1LDE0NC4yODYzLDI4Mi4wNDcsMTQ0LjM5MzIiIHN0eWxlPSJzdHJva2U6ICNGRjAwMDA7IHN0cm9rZS13aWR0aDogMS4wOyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNTEiIHg9IjMxMyIgeT0iMTQ4LjA2NjkiPjUuIGJ5dGVzPC90ZXh0PjwhLS1NRDU9WzRkNmEyMzhkMzhjMGViZDY3MmFkZDA1ZjQ4ODM0MDdjXQpsaW5rIGVuY29kZXIgdG8gZGVjb2Rlci0tPjwvZz48L3N2Zz4=" alt=""/>
+</div>
+<div class="title">Figure 1. Channel pipeline执行顺序</div>
+</div>
+<div class="paragraph">
+<p>在对应pipeline中，handler可能是以如下顺序被依次注册，我们可以注意到，netty会按我们注册的顺序先依次调用所有的inbound handler，直到处理完所有读取事件后，在写事件中再调用outbound handler。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">ChannelPipeline p = ...;
+...
+// addLast() 方法将 handler 加入链尾
+p.addLast("decoder", new HttpRequestDecoder());
+p.addLast("encoder", new HttpResponseEncoder());
+p.addLast("aggregator", new HttpObjectAggregator(1048576));
+...
+p.addLast("handler", new BusinessHandler());</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_events_handlers">1.3. Events &amp; Handlers</h3>
+<div class="paragraph">
+<p>Netty使用事件驱动，利用事件在handler之间传递消息，例如上面的http message传递就是由前一个 handler 调用 <code>channelHandlerContext.fireChannelRead(msg)</code> 方法来通知下一个 handler 处理 ChannelRead 事件，并且这个事件中携带了 msg 这个对象。</p>
+</div>
+<div class="paragraph">
+<p>事件和 inbound/outbound 数据流相关。Inbound事件有以下几种:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Channel激活和失活</p>
+</li>
+<li>
+<p>读操作事件</p>
+</li>
+<li>
+<p>异常事件</p>
+</li>
+<li>
+<p>用户事件，例如心跳</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Outbound事件则比较简单，通常是打开/关闭连接或写入/刷新数据。</p>
+</div>
+<div class="paragraph">
+<p>Netty 应用程序则由 inbound 和 outbound 两类事件及其处理程序组成。事件处理的基本接口是 ChannelOutboundHandler、ChannelInboundHandler。Netty本身提供了庞大的ChannelHandler实现层次结构。很多适配器虽然只是一些空的实现，例如 ChannelInboundHandlerAdapter 和 ChannelOutboundHandlerAdapter。但当只需要处理少数事件时，我们可以方便的继承这些适配器。此外，Netty 还有许多特定协议的实现，例如对HTTP协议提供了HttpRequestDecoder, HttpResponseEncoder, HttpObjectAggregator 等 handler。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_encoders_decoders">1.4. Encoders &amp; Decoders</h3>
+<div class="paragraph">
+<p>从网络层到应用层的数据转换通常涉及数据序列化和反序列化，因此Netty引入了 <code>Encoder</code> 和 <code>Decoder</code> 概念，但它们本身也都是 Handler。其中 Decoder 负责反序列化，通常可以基于 <code>ByteToMessageDecoder</code> 开发自己的解码器。对应的，Encoder 通常基于 <code>MessageToByteEncoder</code> 开发。Netty自己也带了大量编解码器，可以处理常见协议。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_future">1.5. Future</h3>
+<div class="paragraph">
+<p>Netty中所有的IO操作都是异步的。类似Java标准库中的异步操作，Netty也提供了 <code>Future</code> 接口，但不同的是Netty的Future对完成状态有更精细的定义，并可以添加 <code>FutureListener</code> 作为回调，以便操作完成后被调用。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                                      +---------------------------+
+                                      | Completed successfully    |
+                                      +---------------------------+
+                                 +----&gt;      isDone() = true      |
+ +--------------------------+    |    |   isSuccess() = true      |
+ |        Uncompleted       |    |    +===========================+
+ +--------------------------+    |    | Completed with failure    |
+ |      isDone() = false    |    |    +---------------------------+
+ |   isSuccess() = false    |----+----&gt;      isDone() = true      |
+ | isCancelled() = false    |    |    |       cause() = non-null  |
+ |       cause() = null     |    |    +===========================+
+ +--------------------------+    |    | Completed by cancellation |
+                                 |    +---------------------------+
+                                 +----&gt;      isDone() = true      |
+                                      | isCancelled() = true      |
+                                      +---------------------------+</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+注意千万不要在ChannelHandler中调用 <code>await()</code> 或 <code>sync()</code>，Handler 中的操作都应该是异步的。
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_服务端应用">2. 服务端应用</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_server初始化">2.1. Server初始化</h3>
+<div class="paragraph">
+<p>服务端的启动主要就是通过 <code>ServerBootstrap</code> 对象来设置服务器的线程池、socket参数和Channel Pipeline，我们来看看一个完整的服务端例子。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">@Slf4j
+public class RpcServer {
+    EventLoopGroup bossGroup = new NioEventLoopGroup(); <b class="conum">(1)</b>
+    EventLoopGroup workerGroup = new NioEventLoopGroup(new DefaultThreadFactory("server")); <b class="conum">(2)</b>
+
+    private int port;
+    public RpcServer(int port) throws Exception {
+        this.port = port;
+        this.run();
+    }
+
+    public void stop(){  <b class="conum">(3)</b>
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
+    }
+
+    private void run() throws Exception {
+        ServerBootstrap b = new ServerBootstrap();
+        b.group(bossGroup, workerGroup);
+        b.channel(NioServerSocketChannel.class);
+        b.childHandler(new ChannelInitializer&lt;SocketChannel&gt;() {
+            @Override
+            public void initChannel(SocketChannel ch) throws Exception {
+                ch.pipeline()
+                        .addLast(new LoggingHandler(LogLevel.INFO))  <b class="conum">(4)</b>
+                        .addLast(new ResponseEncoder(),     <b class="conum">(5)</b>
+                                 new RequestDecoder(),      <b class="conum">(6)</b>
+                                 new ProcessingHandler());  <b class="conum">(7)</b>
+            }
+        });
+        b.option(ChannelOption.SO_BACKLOG, 128);   <b class="conum">(8)</b>
+        b.childOption(ChannelOption.SO_KEEPALIVE, true);  <b class="conum">(9)</b>
+
+        ChannelFuture f = b.bind(port).sync();
+        f.channel().closeFuture().addListener((ChannelFutureListener) future -&gt; {
+            log.info(future.channel().toString() + " 链路关闭");
+            stop();
+        });
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>用于acceptor的线程池。</p>
+</li>
+<li>
+<p>用于worker的线程池，这个池理论上应该仅用于IO操作，如果你的Handler里面有阻塞操作，考虑将任务提交到单独的线程池，而不是扩展worker池大小。我们这里配置了线程组的名字，方便thread dump的时候做区分。</p>
+</li>
+<li>
+<p>EventLoopGroup启动后不会主动退出，如果想关闭服务器，需要主动调用 shutdown 方法。</p>
+</li>
+<li>
+<p>我们将 LoggingHandler 作为第一个 handler 加入channel pipeline，以便核对入站和出站的字节流。当然也可以将它放在 decoder 后面，用于记录解码后的对象。</p>
+</li>
+<li>
+<p>Response对象的encoder，用于将对象序列化为字节流。</p>
+</li>
+<li>
+<p>Request对象的decoder，用于从字节流提取并反序列化对象。注意我们将decoder放在encoder后面，这样如果decoder出现问题，可以直接回复Response对象，不需要经过后面的业务handler。</p>
+</li>
+<li>
+<p>用于处理业务逻辑的handler。</p>
+</li>
+<li>
+<p>设置boss线程组的socket参数。</p>
+</li>
+<li>
+<p>设置worker线程组的socket参数。</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_消息编码与解码">2.2. 消息编码与解码</h3>
+<div class="paragraph">
+<p>Netty通过实现 <code>ChannelOutboundHandler</code> 接口的 <code>write</code> 方法来处理消息编码，但为了简化 <code>ByteBuf</code> 的内存分配和释放操作，我们通常继承 <code>MessageToByteEncoder</code> 来处理消息的序列化。但除了序列化，我们还需要考虑TCP发送的时候，由于缓存区大小、MSS、MTU等因素导致的粘包拆包问题，最通用的解决办法就是使用定长消息头，并在其中包含消息体的长度信息。这样解码的时候就可以先读取一个定长字节，然后根据长度信息对消息体解码。</p>
+</div>
+<div class="listingblock">
+<div class="title">RequestEncoder</div>
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public class RequestEncoder extends MessageToByteEncoder&lt;RpcRequest&gt; {
+    private final Charset charset = Charset.forName("UTF-8");
+    private Gson gson = new Gson();
+
+    @Override
+    protected void encode(ChannelHandlerContext ctx, RpcRequest msg, ByteBuf out) throws Exception {
+        String json = gson.toJson(msg);
+        out.writeInt(json.length());  <b class="conum">(1)</b>
+        out.writeCharSequence(json, charset);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>写入消息体长度。Netty提供了 <a href="https://netty.io/4.1/api/io/netty/handler/codec/LengthFieldPrepender.html">LengthFieldPrepender</a> 帮我们自动添加 length 域到header里面，但这里为简化起见，直接调用 <code>writeInt</code> 写入长度。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>对于带有长度信息的消息解码，可以利用 <a href="https://netty.io/4.1/api/io/netty/handler/codec/LengthFieldBasedFrameDecoder.html">LengthFieldBasedFrameDecoder</a> 处理粘包拆包。但我们的封包格式非常简单，这里就直接读取了。同时由于长度一定是正整数，我们还可以利用负数当 keep alive 的消息包，例如下面读到 -1 后直接回个 -1。</p>
+</div>
+<div class="listingblock">
+<div class="title">RequestDecoder</div>
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public class RequestDecoder extends ReplayingDecoder&lt;RpcRequest&gt; {
+    private final Charset charset = Charset.forName("UTF-8");
+    private Gson gson = new Gson();
+
+    @Override
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List&lt;Object&gt; out) throws Exception {
+        int strLen = in.readInt();
+        if (strLen == -1) {
+            ctx.writeAndFlush(ctx.alloc().buffer(4).writeInt(-1));
+            return;
+        }
+        RpcRequest request = gson.fromJson(in.readCharSequence(strLen, charset).toString(), RpcRequest.class);
+        out.add(request);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_异常处理">2.3. 异常处理</h3>
+<div class="paragraph">
+<p>Netty中的异常处理也是基于事件的，框架捕捉到异常后会触发异常事件，用户只需要在自己的 Handler 里面重写 <code>exceptionCaught</code> 方法，进行异常处理即可。异常也可以通过 <code>ctx.fireExceptionCaught(cause)</code> 传递给下一个 handler，这样可以方便统一处理异常。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
+        throws Exception {
+    log.info(cause.getLocalizedMessage(), cause);
+    //do more exception handling
+    ctx.close();
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_客户端应用">3. 客户端应用</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_client初始化">3.1. Client初始化</h3>
+<div class="paragraph">
+<p>客户端的初始化跟服务端类似，只是由 <code>bind</code> 变成了 <code>connect</code>，当然也不需要acceptor线程池。当连接建立之后我们会收到 <code>channelActive</code> 事件，对于可以立即初始化的操作，比如 Lightweight M2M bootstrap 消息我们可以在这里发送。但更常见的设计是将 Netty 的 handler 封装成协议层组件，由更上层的应用层逻辑控制消息收发。例如示例代码的 connect 和 send 操作。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public void connect(String host, int port) {
+    EventLoopGroup workerGroup = new NioEventLoopGroup();
+    Bootstrap b = new Bootstrap();
+    b.group(workerGroup);
+    b.channel(NioSocketChannel.class);
+    b.option(ChannelOption.SO_KEEPALIVE, true);
+    b.handler(new ChannelInitializer&lt;SocketChannel&gt;() {
+        @Override
+        public void initChannel(SocketChannel ch) throws Exception {
+            ch.pipeline()
+                .addLast("idleStateHandler", new IdleStateHandler(10, 5, 0))
+                .addLast(new RequestEncoder(), new ResponseDecoder(),
+                         new IdleHandler(), new ClientHandler());
+        }
+    });
+
+    ChannelFuture f = b.connect(host, port).sync();  <b class="conum">(1)</b>
+    this.channel = f.channel();  <b class="conum">(2)</b>
+}
+
+public void send(Request request) {
+    channel.writeAndFlush(request);
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>因为连接建立之前一般做不了什么，使用同步方式建立连接可以简化后续代码。</p>
+</li>
+<li>
+<p>通常需要获取 channel 对象方便客户端主动发送消息。</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_事件处理">3.2. 事件处理</h3>
+<div class="paragraph">
+<p>除了用于收发消息的读写事件，用户事件也是非常常用的。例如上面客户端的代码我们使用了 <code>IdleStateHandler</code> 生成 idle 事件。<code>IdleStateHandler</code> 内部有个定时器计算读或写事件上分别有多长时间的 idle 状态，达到设定的时长后则调用 <code>ctx.fireUserEventTriggered(evt)</code> 发送 <code>IdleStateEvent</code>，后续 handler 通过重写 <code>userEventTriggered</code> 方法处理事件。例如下面代码我们收到 <code>READER_IDLE</code> 后主动发送一个 int 用于保持连接。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">public class IdleHandler extends ChannelDuplexHandler {
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt)
+            throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent e = (IdleStateEvent) evt;
+            if (e.state() == IdleState.READER_IDLE) {
+                ctx.writeAndFlush(ctx.alloc().buffer(4).writeInt(-1));
+            } else if (e.state() == IdleState.WRITER_IDLE) {
+                //do nothing
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_内部机制">4. 内部机制</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_线程模型">4.1. 线程模型</h3>
+<div class="paragraph">
+<p>在 Netty 中每个 Channel 创建的时候都会被 EventLoopGroup 以 round robin 策略分配给一个 EventLoop，并保证在 Channel 的整个生命周期都由这个 EventLoop 处理上面的事件。而 EventLoop 背后则是一个线程，与线程一对一绑定。EventLoop 不断的监听网络事件，并将事件分发给 ChannelHandler。ChannelHandler 的执行也是在当前 EventLoop 线程中，一旦 handler 中的处理出现了阻塞，会导致一组 Channel 无法及时处理。</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPgo8IS0tIEdlbmVyYXRlZCBieSBncmFwaHZpeiB2ZXJzaW9uIDIuMzguMCAoMjAxNDA0MTMuMjA0MSkKIC0tPgo8IS0tIFRpdGxlOiB0aHJlYWRfbW9kZWwgUGFnZXM6IDEgLS0+Cjxzdmcgd2lkdGg9IjY5MHB0IiBoZWlnaHQ9IjI5MnB0Igogdmlld0JveD0iMC4wMCAwLjAwIDY5MC4xNiAyOTIuMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPgo8ZyBpZD0iZ3JhcGgwIiBjbGFzcz0iZ3JhcGgiIHRyYW5zZm9ybT0ic2NhbGUoMSAxKSByb3RhdGUoMCkgdHJhbnNsYXRlKDQgMjg4KSI+Cjx0aXRsZT50aHJlYWRfbW9kZWw8L3RpdGxlPgo8cG9seWdvbiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSJub25lIiBwb2ludHM9Ii00LDQgLTQsLTI4OCA2ODYuMTYxLC0yODggNjg2LjE2MSw0IC00LDQiLz4KPCEtLSBHVCAtLT4KPGcgaWQ9Im5vZGUxIiBjbGFzcz0ibm9kZSI+PHRpdGxlPkdUPC90aXRsZT4KPHRleHQgdGV4dC1hbmNob3I9InN0YXJ0IiB4PSIzMC4wODA3IiB5PSItMjY4LjgiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj7miYDmnInnmoRFdmVudExvb3Dpg73nlLE8L3RleHQ+Cjx0ZXh0IHRleHQtYW5jaG9yPSJzdGFydCIgeD0iMzAuMDgwNyIgeT0iLTI1My44IiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+6L+Z5LiqRXZlbnRMb29wR3JvdXA8L3RleHQ+Cjx0ZXh0IHRleHQtYW5jaG9yPSJzdGFydCIgeD0iMzAuMDgwNyIgeT0iLTIzOC44IiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+5YiG6YWN77yM5pyJM+S4quato+WcqOS9v+eUqDwvdGV4dD4KPHRleHQgdGV4dC1hbmNob3I9InN0YXJ0IiB4PSIzMC4wODA3IiB5PSItMjIzLjgiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj7nmoRFdmVudExvb3A8L3RleHQ+CjwvZz4KPCEtLSBFVCAtLT4KPGcgaWQ9Im5vZGUyIiBjbGFzcz0ibm9kZSI+PHRpdGxlPkVUPC90aXRsZT4KPHRleHQgdGV4dC1hbmNob3I9InN0YXJ0IiB4PSIyMzkuMTYxIiB5PSItMjY4LjgiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj7mr4/kuKpFdmVudExvb3DlsIblpITnkIbliIbphY3nu5k8L3RleHQ+Cjx0ZXh0IHRleHQtYW5jaG9yPSJzdGFydCIgeD0iMjM5LjE2MSIgeT0iLTI1My44IiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+5a6D55qE5omA5pyJQ2hhbm5lbOeahOaJgOacieS6i+S7tjwvdGV4dD4KPHRleHQgdGV4dC1hbmNob3I9InN0YXJ0IiB4PSIyMzkuMTYxIiB5PSItMjM4LjgiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj7lkozku7vliqHjgILmr4/kuKpFdmVudExvb3Dpg73lkow8L3RleHQ+Cjx0ZXh0IHRleHQtYW5jaG9yPSJzdGFydCIgeD0iMjM5LjE2MSIgeT0iLTIyMy44IiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+5LiA5LiqVGhyZWFk55u45YWz6IGUPC90ZXh0Pgo8L2c+CjwhLS0gR1QmIzQ1OyYjNDU7RVQgLS0+CjwhLS0gbG9vcEcgLS0+CjxnIGlkPSJub2RlNCIgY2xhc3M9Im5vZGUiPjx0aXRsZT5sb29wRzwvdGl0bGU+CjxlbGxpcHNlIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGN4PSI5Ny41ODA3IiBjeT0iLTcyIiByeD0iOTcuNjYxNSIgcnk9IjI2Ljc0MDciLz4KPHRleHQgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iOTcuNTgwNyIgeT0iLTc1LjgiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj7lhbfmnIkz5LiqRXZlbnRMb29wPC90ZXh0Pgo8dGV4dCB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSI5Ny41ODA3IiB5PSItNjAuOCIgZm9udC1mYW1pbHk9IkthaUdlbiBHb3RoaWMgQ04sTWljcm9zb2Z0IFlhSGVpLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPueahEV2ZW50TG9vcEdyb3VwPC90ZXh0Pgo8L2c+CjwhLS0gR1QmIzQ1OyYjNDU7bG9vcEcgLS0+CjxnIGlkPSJlZGdlNCIgY2xhc3M9ImVkZ2UiPjx0aXRsZT5HVCYjNDU7JiM0NTtsb29wRzwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik05Ny41ODA3LC0yMTUuODE2Qzk3LjU4MDcsLTE4MC4yNTkgOTcuNTgwNywtMTQ0LjcwMyA5Ny41ODA3LC0xMDkuMTQ2Ii8+Cjxwb2x5Z29uIGZpbGw9ImJsYWNrIiBzdHJva2U9ImJsYWNrIiBwb2ludHM9IjEwMS4wODEsLTEwOS4xMTcgOTcuNTgwNywtOTkuMTE3MiA5NC4wODA4LC0xMDkuMTE3IDEwMS4wODEsLTEwOS4xMTciLz4KPC9nPgo8IS0tIENUIC0tPgo8ZyBpZD0ibm9kZTMiIGNsYXNzPSJub2RlIj48dGl0bGU+Q1Q8L3RpdGxlPgo8dGV4dCB0ZXh0LWFuY2hvcj0ic3RhcnQiIHg9IjQ2My4xNjEiIHk9Ii0yNjguOCIgZm9udC1mYW1pbHk9IkthaUdlbiBHb3RoaWMgQ04sTWljcm9zb2Z0IFlhSGVpLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPkV2ZW50TG9vcEdyb3Vw5bCG5Li65q+P5Liq5paw5Yib5bu655qEPC90ZXh0Pgo8dGV4dCB0ZXh0LWFuY2hvcj0ic3RhcnQiIHg9IjQ2My4xNjEiIHk9Ii0yNTMuOCIgZm9udC1mYW1pbHk9IkthaUdlbiBHb3RoaWMgQ04sTWljcm9zb2Z0IFlhSGVpLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPkNoYW5uZWzliIbphY3kuIDkuKpFdmVudExvb3DjgILlnKjmr488L3RleHQ+Cjx0ZXh0IHRleHQtYW5jaG9yPSJzdGFydCIgeD0iNDYzLjE2MSIgeT0iLTIzOC44IiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+5LiqQ2hhbm5lbOeahOaVtOS4queUn+WRveWRqOacn+WGhe+8jOaJgOaciTwvdGV4dD4KPHRleHQgdGV4dC1hbmNob3I9InN0YXJ0IiB4PSI0NjMuMTYxIiB5PSItMjIzLjgiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj7nmoTmk43kvZzpg73lsIbnlLHnm7jlkIznmoRUaHJlYWTmiafooYw8L3RleHQ+CjwvZz4KPCEtLSBFVCYjNDU7JiM0NTtDVCAtLT4KPCEtLSBlMSAtLT4KPGcgaWQ9Im5vZGU1IiBjbGFzcz0ibm9kZSI+PHRpdGxlPmUxPC90aXRsZT4KPGVsbGlwc2UgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgY3g9IjMyNS4xNjEiIGN5PSItMTI2IiByeD0iNTUuNzkwMyIgcnk9IjE4Ii8+Cjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMyNS4xNjEiIHk9Ii0xMjIuMyIgZm9udC1mYW1pbHk9IkthaUdlbiBHb3RoaWMgQ04sTWljcm9zb2Z0IFlhSGVpLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPkV2ZW50TG9vcDwvdGV4dD4KPC9nPgo8IS0tIEVUJiM0NTsmIzQ1O2UxIC0tPgo8ZyBpZD0iZWRnZTUiIGNsYXNzPSJlZGdlIj48dGl0bGU+RVQmIzQ1OyYjNDU7ZTE8L3RpdGxlPgo8cGF0aCBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBkPSJNMzI1LjE2MSwtMjE1Ljc2NUMzMjUuMTYxLC0xOTUuMzIzIDMyNS4xNjEsLTE3NC44ODIgMzI1LjE2MSwtMTU0LjQ0MSIvPgo8cG9seWdvbiBmaWxsPSJibGFjayIgc3Ryb2tlPSJibGFjayIgcG9pbnRzPSIzMjguNjYyLC0xNTQuNDA2IDMyNS4xNjEsLTE0NC40MDYgMzIxLjY2MiwtMTU0LjQwNiAzMjguNjYyLC0xNTQuNDA2Ii8+CjwvZz4KPCEtLSBjMSAtLT4KPGcgaWQ9Im5vZGU4IiBjbGFzcz0ibm9kZSI+PHRpdGxlPmMxPC90aXRsZT4KPGVsbGlwc2UgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgY3g9IjU2OC42NjEiIGN5PSItMTgwIiByeD0iNDQuMzkzIiByeT0iMTgiLz4KPHRleHQgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iNTY4LjY2MSIgeT0iLTE3Ni4zIiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+Q2hhbm5lbDwvdGV4dD4KPC9nPgo8IS0tIENUJiM0NTsmIzQ1O2MxIC0tPgo8ZyBpZD0iZWRnZTMiIGNsYXNzPSJlZGdlIj48dGl0bGU+Q1QmIzQ1OyYjNDU7YzE8L3RpdGxlPgo8cGF0aCBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBkPSJNNTY4LjY2MSwtMjE1LjkwNkM1NjguNjYxLC0yMTMuMzAxIDU2OC42NjEsLTIxMC42OTcgNTY4LjY2MSwtMjA4LjA5MiIvPgo8cG9seWdvbiBmaWxsPSJibGFjayIgc3Ryb2tlPSJibGFjayIgcG9pbnRzPSI1NzIuMTYyLC0yMDguMDQ3IDU2OC42NjEsLTE5OC4wNDcgNTY1LjE2MiwtMjA4LjA0NyA1NzIuMTYyLC0yMDguMDQ3Ii8+CjwvZz4KPCEtLSBsb29wRyYjNDU7JiM0NTtlMSAtLT4KPGcgaWQ9ImVkZ2U2IiBjbGFzcz0iZWRnZSI+PHRpdGxlPmxvb3BHJiM0NTsmIzQ1O2UxPC90aXRsZT4KPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgZD0iTTE3MS44MiwtODkuNTMyM0MyMDcuNDU2LC05OC4wNjI4IDI0OS4xMjMsLTEwOC4wMzcgMjc5Ljg2NCwtMTE1LjM5NiIvPgo8L2c+CjwhLS0gZTIgLS0+CjxnIGlkPSJub2RlNiIgY2xhc3M9Im5vZGUiPjx0aXRsZT5lMjwvdGl0bGU+CjxlbGxpcHNlIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGN4PSIzMjUuMTYxIiBjeT0iLTcyIiByeD0iNTUuNzkwMyIgcnk9IjE4Ii8+Cjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMyNS4xNjEiIHk9Ii02OC4zIiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+RXZlbnRMb29wPC90ZXh0Pgo8L2c+CjwhLS0gbG9vcEcmIzQ1OyYjNDU7ZTIgLS0+CjxnIGlkPSJlZGdlNyIgY2xhc3M9ImVkZ2UiPjx0aXRsZT5sb29wRyYjNDU7JiM0NTtlMjwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik0xOTUuMjI5LC03MkMyMjAuNDYxLC03MiAyNDYuNzkzLC03MiAyNjkuMDM0LC03MiIvPgo8L2c+CjwhLS0gZTMgLS0+CjxnIGlkPSJub2RlNyIgY2xhc3M9Im5vZGUiPjx0aXRsZT5lMzwvdGl0bGU+CjxlbGxpcHNlIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGN4PSIzMjUuMTYxIiBjeT0iLTE4IiByeD0iNTUuNzkwMyIgcnk9IjE4Ii8+Cjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMyNS4xNjEiIHk9Ii0xNC4zIiBmb250LWZhbWlseT0iS2FpR2VuIEdvdGhpYyBDTixNaWNyb3NvZnQgWWFIZWksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+RXZlbnRMb29wPC90ZXh0Pgo8L2c+CjwhLS0gbG9vcEcmIzQ1OyYjNDU7ZTMgLS0+CjxnIGlkPSJlZGdlOCIgY2xhc3M9ImVkZ2UiPjx0aXRsZT5sb29wRyYjNDU7JiM0NTtlMzwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik0xNzEuODIsLTU0LjQ2NzdDMjA3LjQ1NiwtNDUuOTM3MiAyNDkuMTIzLC0zNS45NjI5IDI3OS44NjQsLTI4LjYwNCIvPgo8L2c+CjwhLS0gZTEmIzQ1OyYjNDU7YzEgLS0+CjxnIGlkPSJlZGdlOSIgY2xhc3M9ImVkZ2UiPjx0aXRsZT5lMSYjNDU7JiM0NTtjMTwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik0zNzEuNTg2LC0xMzYuMTU3QzQxNy4yMjIsLTE0Ni4zNjEgNDg2Ljc1NywtMTYxLjkxIDUyOS41OTEsLTE3MS40ODciLz4KPC9nPgo8IS0tIGMyIC0tPgo8ZyBpZD0ibm9kZTkiIGNsYXNzPSJub2RlIj48dGl0bGU+YzI8L3RpdGxlPgo8ZWxsaXBzZSBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBjeD0iNTY4LjY2MSIgY3k9Ii0xMjYiIHJ4PSI0NC4zOTMiIHJ5PSIxOCIvPgo8dGV4dCB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSI1NjguNjYxIiB5PSItMTIyLjMiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj5DaGFubmVsPC90ZXh0Pgo8L2c+CjwhLS0gZTEmIzQ1OyYjNDU7YzIgLS0+CjxnIGlkPSJlZGdlMTAiIGNsYXNzPSJlZGdlIj48dGl0bGU+ZTEmIzQ1OyYjNDU7YzI8L3RpdGxlPgo8cGF0aCBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBkPSJNMzgxLjI2NCwtMTI2QzQyNC42OTgsLTEyNiA0ODQuNDEzLC0xMjYgNTI0LjQzOCwtMTI2Ii8+CjwvZz4KPCEtLSBjMyAtLT4KPGcgaWQ9Im5vZGUxMCIgY2xhc3M9Im5vZGUiPjx0aXRsZT5jMzwvdGl0bGU+CjxlbGxpcHNlIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGN4PSI1NjguNjYxIiBjeT0iLTcyIiByeD0iNDQuMzkzIiByeT0iMTgiLz4KPHRleHQgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iNTY4LjY2MSIgeT0iLTY4LjMiIGZvbnQtZmFtaWx5PSJLYWlHZW4gR290aGljIENOLE1pY3Jvc29mdCBZYUhlaSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0LjAwIj5DaGFubmVsPC90ZXh0Pgo8L2c+CjwhLS0gZTImIzQ1OyYjNDU7YzMgLS0+CjxnIGlkPSJlZGdlMTEiIGNsYXNzPSJlZGdlIj48dGl0bGU+ZTImIzQ1OyYjNDU7YzM8L3RpdGxlPgo8cGF0aCBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBkPSJNMzgxLjI2NCwtNzJDNDI0LjY5OCwtNzIgNDg0LjQxMywtNzIgNTI0LjQzOCwtNzIiLz4KPC9nPgo8IS0tIGM0IC0tPgo8ZyBpZD0ibm9kZTExIiBjbGFzcz0ibm9kZSI+PHRpdGxlPmM0PC90aXRsZT4KPGVsbGlwc2UgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgY3g9IjU2OC42NjEiIGN5PSItMTgiIHJ4PSI0NC4zOTMiIHJ5PSIxOCIvPgo8dGV4dCB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSI1NjguNjYxIiB5PSItMTQuMyIgZm9udC1mYW1pbHk9IkthaUdlbiBHb3RoaWMgQ04sTWljcm9zb2Z0IFlhSGVpLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPkNoYW5uZWw8L3RleHQ+CjwvZz4KPCEtLSBlMyYjNDU7JiM0NTtjNCAtLT4KPGcgaWQ9ImVkZ2UxMiIgY2xhc3M9ImVkZ2UiPjx0aXRsZT5lMyYjNDU7JiM0NTtjNDwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik0zODEuMjY0LC0xOEM0MjQuNjk4LC0xOCA0ODQuNDEzLC0xOCA1MjQuNDM4LC0xOCIvPgo8L2c+CjwvZz4KPC9zdmc+Cg==" alt=""/>
+</div>
+<div class="title">Figure 2. EventLoop分配模型，摘自 <a href="https://www.jianshu.com/p/95513325d439" class="bare">https://www.jianshu.com/p/95513325d439</a></div>
+</div>
+<div class="paragraph">
+<p>从上图的分配模型我们也可以很容易的看出，Netty被设计为使用少数线程处理大量 Channel，如果业务的连接数较少，将无法充分发挥服务器性能。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_bytebuf">4.2. ByteBuf</h3>
+<div class="paragraph">
+<p>上面的例子我们看到最终从channel里面读写的都是ByteBuf对象，ByteBuf 是最值得注意的类型, 它利用引用计数来提高内存分配和释放的性能。相对JVM的GC算法，单纯的引用计数性能要好得多，但同时它也容易引起内存泄漏。这里我们看看Netty是如何管理引用计数，以及我们在编码中需要注意的事项。</p>
+</div>
+<div class="paragraph">
+<p>ByteBuf 在初次分配的时候，引用计数为 <code>1</code>，当我们读完 ByteBuf 之后应调用 release() 方法，将引用计数减一，以便netty可以回收该ByteBuf使用的内存段。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">ByteBuf buf = ctx.alloc().directBuffer();
+assert buf.refCnt() == 1;
+boolean destroyed = buf.release();
+assert destroyed;
+assert buf.refCnt() == 0;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>但在前面Decoder的例子中，我们并没有手工release，这会导致内存泄漏吗？通过阅读 <a href="https://netty.io/4.0/xref/io/netty/handler/codec/ByteToMessageDecoder.html#256">ByteToMessageDecoder.channelRead()</a> 方法的源码，可以发现 ByteToMessageDecoder 已经帮我们做了 release，无需我们再手工管理。但如果是自行实现 channelRead()  接口，则必须考虑 ByteBuf 的 release。关于引用计数更详细的说明可以参考官方wiki <a href="https://netty.io/wiki/reference-counted-objects.html">Reference counted objects</a>。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_native_epoll">4.3. Native epoll</h3>
+<div class="paragraph">
+<p>Netty 的 epoll 传输层使用了 epoll 边界触发模式(edge-triggered), 这比 Java NIO 提供的水平触发模式(level-triggered) 可能有更好的性能。同时它支持NIO不支持一些选项，例如 TCP_CORK, SO_REUSEPORT 等等。</p>
+</div>
+<div class="paragraph">
+<p>Netty 中我们只需要简单判断下当前系统是否支持 Epoll 即可将 EventLoopGroup 和 channelClass 切换到 Epoll 版本上。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">EventLoopGroup bossGroup = Epoll.isAvailable() ? new EpollEventLoopGroup() : new NioEventLoopGroup();
+new ServerBootstrap().group(bossGroup, bossGroup)
+    .channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class);</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_参考">参考</h2>
+<div class="sectionbody">
+<div class="ulist bibliography">
+<ul class="bibliography">
+<li>
+<p><a href="https://www.baeldung.com/netty" class="bare">https://www.baeldung.com/netty</a></p>
+</li>
+<li>
+<p><a href="https://netty.io/wiki/reference-counted-objects.html" class="bare">https://netty.io/wiki/reference-counted-objects.html</a></p>
+</li>
+<li>
+<p><a href="http://imwyy.xyz/2018/06/19/netty%E9%AB%98%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/">http://imwyy.xyz/2018/06/19/netty高性能调优</a></p>
+</li>
+<li>
+<p><a href="https://www.jianshu.com/p/95513325d439" class="bare">https://www.jianshu.com/p/95513325d439</a></p>
+</li>
+<li>
+<p><a href="https://programmer.help/blogs/netty-implements-synchronous-request-response-communication-mechanism.html" class="bare">https://programmer.help/blogs/netty-implements-synchronous-request-response-communication-mechanism.html</a></p>
+</li>
+<li>
+<p><a href="https://netty.io/wiki/reference-counted-objects.html" class="bare">https://netty.io/wiki/reference-counted-objects.html</a> <a href="https://emacsist.github.io/2018/04/28/%E7%BF%BB%E8%AF%91netty%E4%B8%AD%E7%9A%84%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0%E5%AF%B9%E8%B1%A1/">中文翻译</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+    </article>
+    <section class="comment">
+        <div id="disqus_thread"></div>
+    </section>
+</section>
+<footer class="footer">
+    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/components/prism-core.min.js" integrity="sha256-Y+Budm2wBEjYjbH0qcJRmLuRBFpXd0VKxl6XhdS4hgA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/keep-markup/prism-keep-markup.min.js" integrity="sha256-jHeLW+quLKoSpBFisYif0SQf9Z20AKgmKb2vcdWehJI=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js" integrity="sha256-ht8ay6ZTPZfuixYB99I5oRpCLsCq7Do2LjEYLwbe+X8=" crossorigin="anonymous"></script>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-39495276-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-39495276-1');
+</script>
+
+</body>
+</html>
