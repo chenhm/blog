@@ -1,8 +1,13 @@
 :numbered:
 :toc:
+:scripts: cjk
 
 # Kubernetes 负载均衡机制
 https://chenhm.com
+
+ifndef::backend-pdf[]
+{author}[Chen Hongming]
+endif::[]
 
 ## CNI 工作机制
 
