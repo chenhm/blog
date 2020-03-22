@@ -1,0 +1,14 @@
+{
+  "name": "On the Road",
+  "short_name": "On the Road",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff",
+  "theme_color": "#fff",
+  "icons": [{
+    "src": "/static/icon.png",
+    "type": "image/png",
+    "sizes": "256x256"
+  }]
+}
