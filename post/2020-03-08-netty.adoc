@@ -71,21 +71,22 @@ aggregator --> handler: 3. full http request
 encoder <-[#red]- handler: 4. http object
 ssl <-[#red]- encoder: 5. bytes
 client <-[#red]- ssl: 6. encrypted
-decoder -[hidden]left- encoder
+decoder -[#red]left.> encoder: \twrite response when\ndecoding fails
 ----
 
-在对应pipeline中，handler可能是以如下顺序被依次注册，我们可以注意到，netty会按我们注册的顺序先依次调用所有的inbound handler，直到处理完所有读取事件后，在写事件中再调用outbound handler。
+在对应pipeline中，handler可能是以如下顺序被依次注册，netty会按我们注册的顺序先依次调用所有的inbound handler，直到处理完所有读取事件后，在写事件中再调用outbound handler。
 
 ```java
 ChannelPipeline p = ...;
 ...
 // addLast() 方法将 handler 加入链尾
-p.addLast("decoder", new HttpRequestDecoder());
-p.addLast("encoder", new HttpResponseEncoder());
+p.addLast("encoder", new HttpResponseEncoder()); <1>
+p.addLast("decoder", new HttpRequestDecoder());  <2>
 p.addLast("aggregator", new HttpObjectAggregator(1048576));
 ...
 p.addLast("handler", new BusinessHandler());
 ```
+需要注意的是，在handler中调用 `ctx.write()` 方法时，只会触发注册顺序在当前handler之前的handler。例如上例代码，如果encoder和decoder注册顺序反过来，那么在decoder中调用 `ctx.write()` 将不会触发 encoder。这时虽然可以通过 `channel.write()` 触发整个调用链，但相对低效，并不推荐。
 
 ### Events & Handlers
 
@@ -209,7 +210,7 @@ public class RequestEncoder extends MessageToByteEncoder<RpcRequest> {
 ```
 <1> 写入消息体长度。Netty提供了 https://netty.io/4.1/api/io/netty/handler/codec/LengthFieldPrepender.html[LengthFieldPrepender] 帮我们自动添加 length 域到header里面，但这里为简化起见，直接调用 `writeInt` 写入长度。
 
-对于带有长度信息的消息解码，可以利用 https://netty.io/4.1/api/io/netty/handler/codec/LengthFieldBasedFrameDecoder.html[LengthFieldBasedFrameDecoder] 处理粘包拆包。但我们的封包格式非常简单，这里就直接读取了。同时由于长度一定是正整数，我们还可以利用负数当 keep alive 的消息包，例如下面读到 -1 后直接回个 -1。
+对于带有长度信息的消息解码，可以利用 https://netty.io/4.1/api/io/netty/handler/codec/LengthFieldBasedFrameDecoder.html[LengthFieldBasedFrameDecoder] 处理粘包拆包。但我们的封包格式非常简单，这里就直接读取了。我们使用了 `ReplayingDecoder` 来简化读取过程，`ReplayingDecoder` 会在读取指定长度的内容前调用 `buf.readableBytes()` 检查剩余字节，如果不满足则重置 readerIndex，等待下次读取。当然 `ReplayingDecoder` 这种做法在慢速网络里容易引发反复读取的性能问题，我们暂时不考虑这点。同时由于长度一定是正整数，我们还可以利用负数当 keep alive 的消息包，例如下面读到 -1 后直接回个 -1。
 
 .RequestDecoder
 ```java
@@ -388,3 +389,4 @@ new ServerBootstrap().group(bossGroup, bossGroup)
 - https://www.jianshu.com/p/95513325d439
 - https://programmer.help/blogs/netty-implements-synchronous-request-response-communication-mechanism.html
 - https://netty.io/wiki/reference-counted-objects.html https://emacsist.github.io/2018/04/28/%E7%BF%BB%E8%AF%91netty%E4%B8%AD%E7%9A%84%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0%E5%AF%B9%E8%B1%A1/[中文翻译]
+- http://normanmaurer.me/presentations/2014-facebook-eng-netty/slides.html
