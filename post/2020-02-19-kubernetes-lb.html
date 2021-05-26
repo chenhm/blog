@@ -8,8 +8,8 @@
     <meta name="theme-color" content="#ffffff"/>
     <link rel="manifest" href="/manifest.json"/>
     <link rel="icon" type="image/png" href="/static/icon.png"/>
-    <link href="/static/asciidoctor.min.css" rel="stylesheet"/>
-    <link href="/static/build.css" rel="stylesheet"/>
+    <link href="../static/asciidoctor.min.css" rel="stylesheet"/>
+    <link href="../static/build.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.min.css" integrity="sha256-77qGXu2p8NpfcBpTjw4jsMeQnz0vyh74f5do0cWjQ/Q=" crossorigin="anonymous" />
 </head>
 <body>
@@ -17,7 +17,7 @@
     <header class="header">
         <div class="container">
             <!--start: Navigation -->
-            <a href="/" class="brand">On the Road</a>
+            <a href=".." class="brand">On the Road</a>
 <!--            <ul class="nav">-->
 <!--                <li><a href="/list/">Blogs</a></li>-->
 <!--                <li><a href="/slides/">Slides</a></li>-->
@@ -174,9 +174,9 @@
 <p>我们看到在kube-proxy模式下，从外部负载均衡器访问pod需要通过node port转发，所以实际产生了2层负载均衡，一层在外部负载均衡器，一层在kube-proxy。这也造成了节点间额外的水平流量。而 Load balancer 类型的 service 则可以让上层设备直连对应node。</p>
 </div>
 <div class="sect3">
-<h4 id="_bpg协议">2.2.1. BPG协议</h4>
+<h4 id="_bgp协议">2.2.1. BGP协议</h4>
 <div class="paragraph">
-<p>如果上层路由支持BPG协议，我们可以使用一个独立的网段为service分配一个External IP，这个External IP类似虚拟IP，通过BPG协议通告给上层路由，建立这个虚IP到实际node的路由。在开源实现 <a href="https://github.com/metallb/metallb">MetalLB</a> 中，MetalLB会监控pod列表，并通过speaker组件向上层路由更新路由表。</p>
+<p>如果上层路由支持BGP协议，我们可以使用一个独立的网段为service分配一个External IP，这个External IP类似虚拟IP，通过BGP协议通告给上层路由，建立这个虚IP到实际node的路由。在开源实现 <a href="https://github.com/metallb/metallb">MetalLB</a> 中，MetalLB会监控pod列表，并通过speaker组件向上层路由更新路由表。</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -280,7 +280,7 @@ metadata:
     </section>
 </section>
 <footer class="footer">
-    Copyright © 2020 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
+    Copyright © 2021 | Powered by <a href="https://github.com/chenhm/java-static-blog" target="_blank">java-static-blog</a>
 </footer>
 
 </div>
