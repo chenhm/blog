@@ -110,9 +110,9 @@ service2 ..> pod3
 
 我们看到在kube-proxy模式下，从外部负载均衡器访问pod需要通过node port转发，所以实际产生了2层负载均衡，一层在外部负载均衡器，一层在kube-proxy。这也造成了节点间额外的水平流量。而 Load balancer 类型的 service 则可以让上层设备直连对应node。
 
-#### BPG协议
+#### BGP协议
 
-如果上层路由支持BPG协议，我们可以使用一个独立的网段为service分配一个External IP，这个External IP类似虚拟IP，通过BPG协议通告给上层路由，建立这个虚IP到实际node的路由。在开源实现 https://github.com/metallb/metallb[MetalLB] 中，MetalLB会监控pod列表，并通过speaker组件向上层路由更新路由表。
+如果上层路由支持BGP协议，我们可以使用一个独立的网段为service分配一个External IP，这个External IP类似虚拟IP，通过BGP协议通告给上层路由，建立这个虚IP到实际node的路由。在开源实现 https://github.com/metallb/metallb[MetalLB] 中，MetalLB会监控pod列表，并通过speaker组件向上层路由更新路由表。
 
 [plantuml]
 ----
