@@ -138,7 +138,7 @@ skinparam {
 cloud {
     agent "External client" as client
     agent "Load balancer service\n(External IP)" as service
-    control "BPG Router" as router
+    control "BGP Router" as router
     client --> service
     service --> router
 }
@@ -164,11 +164,11 @@ service1 --> pod2
 service2 --> pod3
 ----
 
-NOTE: MetalLB 的BPG协议支持 `Cluster` 和 `Local` 两种策略，只有 `Local` 才能避免水平流量，参考 https://metallb.universe.tf/usage/
+NOTE: MetalLB 的BGP协议支持 `Cluster` 和 `Local` 两种策略，只有 `Local` 才能避免水平流量，参考 https://metallb.universe.tf/usage/
 
 #### Gratuitous ARP
 
-如果没有BPG路由，MetalLB使用了一个简单的方法，直接在二层网络发送Gratuitous ARP，将External IP和实际node的mac地址绑定，这样也可以让上层路由找到对应的node。但这个方案有明显的缺点，一是External IP必须在上层网络的网段里面，可能需要保留大量ip供service使用，二是Gratuitous ARP并不是个可靠的负载均衡协议。
+如果没有BGP路由，MetalLB使用了一个简单的方法，直接在二层网络发送Gratuitous ARP，将External IP和实际node的mac地址绑定，这样也可以让上层路由找到对应的node。但这个方案有明显的缺点，一是External IP必须在上层网络的网段里面，可能需要保留大量ip供service使用，二是Gratuitous ARP并不是个可靠的负载均衡协议。
 
 ## Ingress controller
 
