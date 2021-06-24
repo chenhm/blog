@@ -137,10 +137,9 @@ skinparam {
 
 cloud {
     agent "External client" as client
-    agent "Load balancer service\n(External IP)" as service
+'    agent "Load balancer service\n(External IP)" as service
     control "BGP Router" as router
-    client --> service
-    service --> router
+    client -> router: "External IP"
 }
 
 cloud {
